@@ -80,6 +80,12 @@ h1 {
   font-family: 'GetVoIP Grotesque', system-ui, -apple-system, sans-serif !important;
 }
 
+/* Принудительное применение шрифта GetVoIP для заголовка "Что мы делаем?" */
+.services-title {
+  font-family: 'GetVoIP Grotesque', system-ui, -apple-system, sans-serif !important;
+  font-weight: bold !important;
+}
+
 /* Применяем вторичный шрифт к описаниям и обычным текстам */
 p, span, div:not(.sparkle-button):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
 .font-secondary,
@@ -996,6 +1002,65 @@ body {
   .dot-stagger-3 { animation-delay: 2.8s; }
   .dot-stagger-4 { animation-delay: 2.95s; }
   .dot-stagger-5 { animation-delay: 3.1s; }
+}
+
+/* Flexible Marquee animations for Services Section */
+@keyframes marquee-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes marquee-right {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+/* Desktop animations */
+.animate-marquee-left {
+  animation: marquee-left var(--desktop-duration, 60s) var(--desktop-speed, linear) infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right var(--desktop-duration, 60s) var(--desktop-speed, linear) infinite;
+}
+
+/* Mobile animations */
+@media (max-width: 768px) {
+  .animate-marquee-left {
+    animation: marquee-left var(--mobile-duration, 30s) var(--mobile-speed, linear) infinite;
+  }
+  
+  .animate-marquee-right {
+    animation: marquee-right var(--mobile-duration, 30s) var(--mobile-speed, linear) infinite;
+  }
+}
+
+/* Tablet animations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .animate-marquee-left {
+    animation: marquee-left var(--tablet-duration, 45s) var(--tablet-speed, linear) infinite;
+  }
+  
+  .animate-marquee-right {
+    animation: marquee-right var(--tablet-duration, 45s) var(--tablet-speed, linear) infinite;
+  }
+}
+
+.animate-marquee-left.direction-reverse {
+  animation-direction: reverse;
+}
+
+/* Pause marquee on hover */
+.group:hover .group-hover\:pause {
+  animation-play-state: paused;
 }
 
 /* Sparkle Button Styles */
