@@ -52,6 +52,15 @@ body {
   overflow-x: hidden;
 }
 
+/* Скрытие скроллбара */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
 /* Класс для первичных текстов с кастомным шрифтом */
 .font-primary {
   font-family: var(--font-primary);
