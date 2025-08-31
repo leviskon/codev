@@ -108,12 +108,12 @@ export default function Header() {
         <div className="fixed inset-0 z-50 md:hidden">
           {/* Backdrop */}
           <div 
-            className="mobile-menu-overlay fixed inset-0"
+            className="mobile-menu-overlay fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           
                      {/* Menu Content */}
-           <div className={`mobile-menu-content fixed right-0 top-0 h-full w-72 max-w-[85vw] p-4 flex flex-col ${isMobileMenuOpen ? 'open' : ''}`}>
+           <div className={`mobile-menu-content fixed right-0 top-0 h-full w-72 max-w-[85vw] p-4 flex flex-col backdrop-blur-xl bg-white/8 border-l border-white/15 ${isMobileMenuOpen ? 'open' : ''}`}>
              {/* Header с логотипом и кнопкой закрытия */}
              <div className="flex items-center justify-between mb-8 pt-2">
                <div className="flex items-center gap-2">
