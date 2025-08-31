@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
 const processSteps = [
   {
@@ -31,7 +32,10 @@ const processSteps = [
 ];
 
 export default function ProcessSection() {
-  const isVisible = true;
+  const { targetRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -56,7 +60,10 @@ export default function ProcessSection() {
   }, []);
 
   return (
-    <section className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden">
+    <section 
+      ref={targetRef}
+      className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden"
+    >
       {/* Декоративные элементы фона */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-xl"></div>
@@ -65,8 +72,10 @@ export default function ProcessSection() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Заголовок секции */}
-        <div className={`text-center mb-6 sm:mb-8 lg:mb-10 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-          <h2 className="services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight">
+        <div className={`text-center mb-6 sm:mb-8 lg:mb-10 ${isVisible ? 'animate-section-slide-up' : 'opacity-0'}`}>
+          <h2 className={`services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight ${
+            isVisible ? 'animate-header-glow' : ''
+          }`}>
             Как из идеи рождается{" "}
             <span className="text-primary relative inline-block">
               готовый продукт
@@ -74,20 +83,31 @@ export default function ProcessSection() {
             </span>
           </h2>
           
-          <p className="text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed">
+          <p className={`text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed ${
+            isVisible ? 'animate-section-fade-scale delay-200' : 'opacity-0'
+          }`}>
             Прозрачный процесс разработки без сюрпризов и скрытых платежей
           </p>
         </div>
 
         {/* Timeline Process Steps */}
-        <div className="max-w-2xl mx-auto relative z-10">
-                     <ol className="relative space-y-4 sm:space-y-6 before:absolute before:-ml-px before:h-full before:w-0.5 before:rounded-full before:bg-gray-200 dark:before:bg-[#aeef10]/20">
+        <div className={`max-w-2xl mx-auto relative z-10 ${
+          isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+        }`}>
+          <ol className={`relative space-y-4 sm:space-y-6 before:absolute before:-ml-px before:h-full before:w-0.5 before:rounded-full before:bg-gray-200 dark:before:bg-[#aeef10]/20 ${
+            isVisible ? 'before:animate-timeline-stroke' : ''
+          }`}>
             {processSteps.map((step, index) => (
               <li 
                 key={step.id} 
-                className="relative -ms-1.5 flex items-start gap-4"
+                className={`relative -ms-1.5 flex items-start gap-4 ${
+                  isVisible ? 'animate-card-stagger' : 'opacity-0'
+                }`}
+                style={{ animationDelay: `${0.6 + index * 0.15}s` }}
               >
-                <span className="size-3 shrink-0 rounded-full bg-[#aeef10]"></span>
+                <span className={`size-3 shrink-0 rounded-full bg-[#aeef10] ${
+                  isVisible ? 'animate-pulse-glow' : ''
+                }`}></span>
 
                 <div className="-mt-2">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -104,7 +124,9 @@ export default function ProcessSection() {
         </div>
 
         {/* CTA внизу секции */}
-        <div className="text-center mt-6 sm:mt-8 lg:mt-10">
+        <div className={`text-center mt-6 sm:mt-8 lg:mt-10 ${
+          isVisible ? 'animate-section-slide-up delay-1000' : 'opacity-0'
+        }`}>
           <button className="bg-primary hover:bg-primary-dark text-background font-semibold text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
             Начать проект прямо сейчас
           </button>

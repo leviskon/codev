@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
 const requirementCards = [
   {
@@ -33,7 +34,10 @@ const requirementCards = [
 ];
 
 export default function RequirementsSection() {
-  const isVisible = true; // Сразу делаем видимым
+  const { targetRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [touchTimeout, setTouchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -86,19 +90,21 @@ export default function RequirementsSection() {
   }, [isMobile]);
 
   return (
-    <section className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden requirements-section">
+    <section 
+      ref={targetRef}
+      className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden requirements-section"
+    >
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Заголовок секции */}
         <div
           className={`text-center mb-6 sm:mb-8 lg:mb-10 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up' : 'opacity-0'
           }`}
-          style={{ 
-            animationDelay: '0.2s'
-          }}
         >
-          <h2 className="services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight mobile-header">
+          <h2 className={`services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight mobile-header ${
+            isVisible ? 'animate-header-glow' : ''
+          }`}>
             Что нужно{" "}
             <span className="text-primary relative inline-block">
               от вас
@@ -106,13 +112,17 @@ export default function RequirementsSection() {
             </span>
           </h2>
           
-          <p className="text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed px-4 mobile-subheader">
+          <p className={`text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed px-4 mobile-subheader ${
+            isVisible ? 'animate-section-fade-scale delay-200' : 'opacity-0'
+          }`}>
             Три главных компонента успешного проекта
           </p>
         </div>
 
                  {/* Карточки в стиле блога */}
-         <div ref={scrollContainerRef} className="w-full overflow-x-auto overflow-y-visible scrollbar-hide pt-8 pb-4">
+         <div ref={scrollContainerRef} className={`w-full overflow-x-auto overflow-y-visible scrollbar-hide pt-8 pb-4 ${
+           isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+         }`}>
            <div className="flex justify-start sm:justify-center items-start gap-4 sm:gap-4 lg:gap-6 w-full min-w-max px-4 sm:px-0">
              {requirementCards.map((card, index) => {
                const isHovered = hoveredCard === card.id;
@@ -124,11 +134,11 @@ export default function RequirementsSection() {
                    key={card.id}
                    className={`relative flex flex-col min-h-[220px] sm:min-h-[240px] lg:min-h-[260px] bg-background/90 border-3 border-[#aeef10]/50 dark:border-[#aeef10]/30 overflow-visible rounded-lg border group w-[180px] sm:w-[200px] lg:w-[240px] flex-shrink-0 transition-all duration-300 ease-out translate-y-[5px] hover:-translate-y-1 ${rotationClass} ${
                      isVisible 
-                       ? 'animate-fade-in' 
+                       ? 'animate-requirement-card' 
                        : 'opacity-0'
                    }`}
                    style={{ 
-                     animationDelay: `${0.4 + index * 0.2}s`
+                     animationDelay: `${0.6 + index * 0.2}s`
                    }}
                    onMouseEnter={() => !isMobile && setHoveredCard(card.id)}
                    onMouseLeave={() => !isMobile && setHoveredCard(null)}
@@ -234,11 +244,8 @@ export default function RequirementsSection() {
         {/* Финальный призыв к действию */}
         <div
           className={`text-center mt-6 sm:mt-8 lg:mt-10 px-4 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up delay-1000' : 'opacity-0'
           }`}
-          style={{ 
-            animationDelay: '1.5s'
-          }}
         >
           <div className="max-w-3xl mx-auto">
                        

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
 // Принципы прозрачности
 const transparencyPrinciples = [
@@ -31,7 +32,10 @@ const transparencyPrinciples = [
 ];
 
 export default function PricingSection() {
-  const isVisible = true;
+  const { targetRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -46,16 +50,20 @@ export default function PricingSection() {
   }, []);
 
   return (
-    <section className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden">
+    <section 
+      ref={targetRef}
+      className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Заголовок секции */}
         <div
           className={`text-center mb-6 sm:mb-8 lg:mb-10 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up' : 'opacity-0'
           }`}
-          style={{ animationDelay: '0.2s' }}
         >
-          <h2 className="services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight">
+          <h2 className={`services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight ${
+            isVisible ? 'animate-header-glow' : ''
+          }`}>
             Прозрачная стоимость{" "}
             <span className="text-primary relative inline-block">
               без лишних трат
@@ -63,13 +71,17 @@ export default function PricingSection() {
             </span>
           </h2>
           
-          <p className="text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed">
+          <p className={`text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed ${
+            isVisible ? 'animate-section-fade-scale delay-200' : 'opacity-0'
+          }`}>
             Мы считаем стоимость по времени и опыту разработчиков
           </p>
         </div>
 
                  {/* Принципы в виде сетки 2x2 */}
-         <div className="max-w-6xl mx-auto">
+         <div className={`max-w-6xl mx-auto ${
+           isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+         }`}>
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
              {transparencyPrinciples.map((principle, index) => (
                <div
@@ -80,9 +92,9 @@ export default function PricingSection() {
                    border-l-4 border-primary/30 hover:border-primary/60
                    bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10
                    transition-all duration-300 ease-out
-                   ${isVisible ? 'animate-fade-in' : 'opacity-0'}
+                   ${isVisible ? 'animate-pricing-grid' : 'opacity-0'}
                  `}
-                 style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+                 style={{ animationDelay: `${0.6 + index * 0.1}s` }}
                >
                  {/* Номер и заголовок */}
                  <div className="flex items-center gap-3">
@@ -115,9 +127,8 @@ export default function PricingSection() {
         {/* Итоговое сообщение */}
         <div
           className={`text-center mt-5 sm:mt-6 max-w-2xl mx-auto ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up delay-1000' : 'opacity-0'
           }`}
-          style={{ animationDelay: '1.0s' }}
         >
           <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed mb-3">
             Вы платите только за реальную работу без переплат за "престиж" агентства

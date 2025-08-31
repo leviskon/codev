@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
 const portfolioProjects = [
   {
@@ -28,7 +29,10 @@ const portfolioProjects = [
 ];
 
 export default function PortfolioSection() {
-  const isVisible = true;
+  const { targetRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -43,23 +47,20 @@ export default function PortfolioSection() {
   }, []);
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24 bg-background relative overflow-hidden">
-      {/* Декоративный фон */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-32 right-1/4 w-2 h-48 bg-gradient-to-b from-primary/20 to-transparent rotate-45"></div>
-        <div className="absolute bottom-40 left-1/3 w-1 h-36 bg-gradient-to-b from-blue-400/20 to-transparent -rotate-12"></div>
-        <div className="absolute top-1/3 right-10 w-1 h-28 bg-gradient-to-b from-purple-400/20 to-transparent rotate-12"></div>
-      </div>
-
+    <section 
+      ref={targetRef}
+      className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Заголовок секции */}
         <div
-          className={`text-center mb-16 sm:mb-20 lg:mb-24 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+          className={`text-center mb-6 sm:mb-8 lg:mb-10 ${
+            isVisible ? 'animate-section-slide-up' : 'opacity-0'
           }`}
-          style={{ animationDelay: '0.2s' }}
         >
-          <h2 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-6 sm:mb-8 leading-tight">
+          <h2 className={`services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight ${
+            isVisible ? 'animate-header-glow' : ''
+          }`}>
             Примеры{" "}
             <span className="text-primary relative inline-block">
               решений
@@ -67,105 +68,88 @@ export default function PortfolioSection() {
             </span>
           </h2>
           
-          <p className="text-lg sm:text-xl lg:text-2xl text-foreground/70 max-w-4xl mx-auto font-light leading-relaxed">
-            Проекты, которые мы создали для наших клиентов. От лендингов до сложных веб-приложений.
+          <p className={`text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed ${
+            isVisible ? 'animate-section-fade-scale delay-200' : 'opacity-0'
+          }`}>
+            Проекты, которые мы создали для наших клиентов
           </p>
         </div>
 
-        {/* Карточки проектов */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
-          {portfolioProjects.map((project, index) => (
-            <div
-              key={project.id}
-              className={`
-                group rounded-xl sm:rounded-2xl
-                bg-background/50 backdrop-blur-sm border-2 border-primary/60
-                shadow-[0_0_20px_rgba(174,239,16,0.4),0_0_40px_rgba(174,239,16,0.2)]
-                transition-all duration-500 ease-out
-                hover:bg-primary/5 hover:border-primary/80 hover:scale-105 hover:shadow-[0_0_30px_rgba(174,239,16,0.6),0_0_60px_rgba(174,239,16,0.3)]
-                cursor-pointer overflow-hidden
-                ${isVisible ? 'animate-fade-in' : 'opacity-0'}
-              `}
-              style={{ animationDelay: `${0.4 + index * 0.2}s` }}
-            >
-              {/* Изображение проекта */}
-              <div className="relative h-48 sm:h-56 lg:h-64 overflow-hidden rounded-t-xl sm:rounded-t-2xl">
-                <Image
-                  src={project.image}
-                  alt={project.name}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  priority={index === 0}
-                />
-                {/* Оверлей при hover */}
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </div>
-
-              {/* Контент карточки */}
-              <div className="p-6 sm:p-8 space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
-                  {project.name}
-                </h3>
-                
-                <p className="text-sm sm:text-base text-foreground/70 leading-relaxed line-clamp-2">
-                  {project.description}
-                </p>
-
-                {/* Кнопка */}
-                <div className="pt-2">
-                  <button 
-                    className={`
-                      inline-flex items-center gap-2
-                      bg-primary hover:bg-primary-dark text-background
-                      font-semibold text-sm sm:text-base
-                      px-6 py-3 rounded-full
-                      transition-all duration-300
-                      shadow-lg hover:shadow-xl
-                      ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-                      group/btn
-                    `}
-                    onClick={() => window.open(project.link, '_blank')}
-                  >
-                    <span>Перейти</span>
-                    <svg 
-                      className="w-4 h-4 transition-transform duration-200 group-hover/btn:translate-x-1" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M17 8l4 4m0 0l-4 4m4-4H3" 
-                      />
+        {/* Карусель проектов */}
+        <div className={`w-full overflow-x-auto overflow-y-visible scrollbar-hide py-4 ${
+          isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+        }`}>
+          <div className="flex gap-6 sm:gap-8 w-max px-4 sm:px-0">
+            {portfolioProjects.map((project, index) => (
+              <div
+                key={project.id}
+                className={`
+                  group flex-shrink-0 w-[300px] sm:w-[340px] 
+                  bg-background/80 hover:bg-background/90
+                  border border-foreground/10 hover:border-primary/40
+                  rounded-xl cursor-pointer
+                  transition-all duration-300 ease-out
+                  hover:shadow-lg hover:shadow-primary/10
+                  ${isVisible ? 'animate-portfolio-slide' : 'opacity-0'}
+                `}
+                style={{ animationDelay: `${0.6 + index * 0.15}s` }}
+                onClick={() => window.open(project.link, '_blank')}
+              >
+                {/* Изображение */}
+                <div className="relative h-48 sm:h-52 overflow-hidden rounded-t-xl">
+                  <Image
+                    src={project.image}
+                    alt={project.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 640px) 300px, 340px"
+                  />
+                  
+                  {/* Subtle overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  {/* Clean indicator */}
+                  <div className="absolute top-4 right-4 w-8 h-8 bg-primary/90 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                    <svg className="w-4 h-4 text-background" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
-                  </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3 className="text-lg sm:text-xl font-medium text-foreground group-hover:text-primary transition-colors duration-300 mb-3">
+                    {project.name}
+                  </h3>
+                  
+                  <p className="text-sm text-foreground/60 leading-relaxed mb-4 line-clamp-2">
+                    {project.description}
+                  </p>
+                  
+                  {/* Simple action */}
+                  <div className="flex items-center text-primary/70 group-hover:text-primary text-sm font-medium transition-colors duration-300">
+                    <span>Посмотреть проект</span>
+                    <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* CTA внизу секции */}
         <div
-          className={`text-center mt-16 sm:mt-20 lg:mt-24 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+          className={`text-center mt-6 sm:mt-8 max-w-2xl mx-auto ${
+            isVisible ? 'animate-section-slide-up delay-1000' : 'opacity-0'
           }`}
-          style={{ animationDelay: '1.0s' }}
         >
-          <div className="max-w-3xl mx-auto space-y-6">
-            <h3 className="text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
-              Готовы создать{" "}
-              <span className="text-primary">свой проект?</span>
-            </h3>
-            
-            <p className="text-base sm:text-lg text-foreground/70 leading-relaxed">
-              Расскажите о своих задачах, и мы предложим оптимальное решение
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg sm:max-w-none mx-auto">
-              <button className={`
+          <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed mb-3">
+            Готовы создать свой проект? Расскажите о задачах
+          </p>
+          
+          <button className={`
                 w-full sm:w-auto
                 bg-primary hover:bg-primary-dark text-background 
                 font-semibold text-base sm:text-lg lg:text-xl 
@@ -178,20 +162,6 @@ export default function PortfolioSection() {
                 <span className="relative z-10">Начать проект</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
               </button>
-              
-              <button className={`
-                w-full sm:w-auto
-                border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary
-                font-semibold text-base sm:text-lg lg:text-xl 
-                px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                rounded-full transition-all duration-300 
-                hover:bg-primary/5 
-                ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-              `}>
-                Посмотреть все работы
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </section>

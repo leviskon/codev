@@ -1,5 +1,7 @@
 'use client';
 
+import useIntersectionObserver from '@/hooks/useIntersectionObserver';
+
 // Конфигурация анимации для каждой строки
 interface MarqueeConfig {
   desktop: {
@@ -198,10 +200,16 @@ const updateAllRows = (
 */
 
 export default function ServicesSection() {
-  const isVisible = true;
+  const { targetRef, isVisible } = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
 
   return (
-    <section className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden">
+    <section 
+      ref={targetRef}
+      className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden"
+    >
       {/* Декоративный фон */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-40 left-1/5 w-2 h-32 bg-gradient-to-b from-primary/20 to-transparent -rotate-12"></div>
@@ -213,11 +221,12 @@ export default function ServicesSection() {
         {/* Заголовок секции */}
         <div
           className={`text-center mb-8 sm:mb-6 lg:mb-8 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up' : 'opacity-0'
           }`}
-          style={{ animationDelay: '0.2s' }}
         >
-          <h2 className="services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight">
+          <h2 className={`services-title text-xl xs:text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground mb-2 sm:mb-4 leading-tight ${
+            isVisible ? 'animate-header-glow' : ''
+          }`}>
             Что мы{" "}
             <span className="text-primary relative inline-block">
               делаем?
@@ -225,13 +234,17 @@ export default function ServicesSection() {
             </span>
           </h2>
           
-          <p className="text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed">
+          <p className={`text-sm sm:text-base lg:text-lg text-foreground/70 max-w-2xl mx-auto font-light leading-relaxed ${
+            isVisible ? 'animate-section-fade-scale delay-200' : 'opacity-0'
+          }`}>
             Полный спектр IT-услуг: от простых сайтов до сложных корпоративных систем.
           </p>
         </div>
 
         {/* Marquee услуг */}
-        <div className="relative z-10 flex flex-col gap-4 sm:gap-2">
+        <div className={`relative z-10 flex flex-col gap-4 sm:gap-2 ${
+          isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+        }`}>
           {/* Первая строка - прямое направление */}
           <div 
             className="group overflow-hidden flex-row" 
@@ -386,9 +399,8 @@ export default function ServicesSection() {
         {/* CTA внизу секции */}
         <div
           className={`text-center mt-12 sm:mt-6 lg:mt-8 ${
-            isVisible ? 'animate-fade-in' : 'opacity-0'
+            isVisible ? 'animate-section-slide-up delay-800' : 'opacity-0'
           }`}
-          style={{ animationDelay: '1.0s' }}
         >
           <div className="max-w-3xl mx-auto space-y-6 sm:space-y-4">
             <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-bold text-foreground leading-tight">

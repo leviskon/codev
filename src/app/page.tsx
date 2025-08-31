@@ -17,40 +17,42 @@ export default function Home() {
       
       <SectionSeparator />
       
-      <div className="relative">
+      <div id="services" className="relative">
         <GradientGlow />
         <ServicesSection />
       </div>
       
       <SectionSeparator />
       
-      <div className="relative">
+      <div id="process" className="relative">
         <GradientGlow intensity="light" />
         <ProcessSection />
       </div>
       
       <SectionSeparator />
       
-      <div className="relative">
+      <div id="requirements" className="relative">
         <GradientGlow intensity="medium" />
         <RequirementsSection />
       </div>
       
       <SectionSeparator />
       
-      <div className="relative">
+      <div id="pricing" className="relative">
         <GradientGlow intensity="strong" />
         <PricingSection />
       </div>
       
       <SectionSeparator />
       
-      <div className="relative">
+      <div id="portfolio" className="relative">
         <GradientGlow intensity="light" />
         <PortfolioSection />
       </div>
       
-      <Footer />
+      <div id="contact">
+        <Footer />
+      </div>
     </main>
   );
 }
