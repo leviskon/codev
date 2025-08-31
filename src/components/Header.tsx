@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -33,22 +34,22 @@ export default function Header() {
   return (
     <>
       <header className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-6">
-        <div className="flex h-14 items-center justify-between px-6 liquid-glass-header rounded-full">
+        <div className="flex h-14 items-center justify-between px-6 liquid-glass-header rounded-full relative backdrop-blur-xl bg-white/10 border border-white/20">
           {/* Логотип */}
-          <a href="/" className="logo-container flex items-center gap-2 relative z-10">
+          <Link href="/" className="logo-container flex items-center gap-2 relative z-10">
             <img 
               src="/codev-logo-without-bg.svg" 
               alt="Codev" 
               className="h-6 w-6" 
             />
             <span className="codev-logo-text font-semibold tracking-wide text-white text-lg">Codev</span>
-          </a>
+          </Link>
 
           {/* Десктопная навигация */}
           <nav className="hidden items-center gap-6 text-sm text-gray-300 md:flex relative z-10">
-            <a href="/" className="nav-link">
+            <Link href="/" className="nav-link">
               Главная
-            </a>
+            </Link>
             <a href="#services" className="nav-link">
               Услуги
             </a>
@@ -148,16 +149,16 @@ export default function Header() {
 
              {/* Navigation Links */}
              <nav className="flex-1 space-y-1">
-               <a
-                 href="/"
-                 className="mobile-nav-link flex items-center gap-3 text-gray-300 hover:text-primary hover:bg-primary/5 transition-all duration-300 py-3 px-4 rounded-lg group"
-                 onClick={() => setIsMobileMenuOpen(false)}
-               >
-                 <svg className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                 </svg>
-                 <span className="font-medium">Главная</span>
-               </a>
+                             <Link
+                href="/"
+                className="mobile-nav-link flex items-center gap-3 text-gray-300 hover:text-primary hover:bg-primary/5 transition-all duration-300 py-3 px-4 rounded-lg group"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <svg className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span className="font-medium">Главная</span>
+              </Link>
                <a
                  href="#services"
                  className="mobile-nav-link flex items-center gap-3 text-gray-300 hover:text-primary hover:bg-primary/5 transition-all duration-300 py-3 px-4 rounded-lg group"
