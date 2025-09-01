@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
@@ -134,19 +135,21 @@ export default function PricingSection() {
             Вы платите только за реальную работу без переплат за "престиж" агентства
           </p>
           
-          <button className={`
-                w-full sm:w-auto
-                bg-primary hover:bg-primary-dark text-background 
-                font-semibold text-base sm:text-lg lg:text-xl 
-                px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                rounded-full transition-all duration-300 
-                shadow-lg hover:shadow-xl 
-                ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-                relative overflow-hidden group
-              `}>
-                <span className="relative z-10">Оценить проект с ИИ</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
-              </button>
+          <Link href="/calculator">
+            <button className={`
+                  w-full sm:w-auto
+                  bg-primary hover:bg-primary-dark text-background 
+                  font-semibold text-base sm:text-lg lg:text-xl 
+                  px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
+                  rounded-full transition-all duration-300 
+                  shadow-lg hover:shadow-xl 
+                  ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
+                  relative overflow-hidden group
+                `}>
+                  <span className="relative z-10">Оценить проект с ИИ</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
+                </button>
+          </Link>
         </div>
       </div>
     </section>

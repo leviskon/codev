@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
 // Конфигурация анимации для каждой строки
@@ -413,10 +414,12 @@ export default function ServicesSection() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg sm:max-w-none mx-auto">
-              <button className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-background font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 relative overflow-hidden group">
-                <span className="relative z-10">Узнать стоимость с ИИ</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
-              </button>
+              <Link href="/calculator" className="w-full sm:w-auto">
+                <button className="w-full bg-primary hover:bg-primary-dark text-background font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 relative overflow-hidden group">
+                  <span className="relative z-10">Узнать стоимость с ИИ</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
+                </button>
+              </Link>
               
               <button className="w-full sm:w-auto border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 hover:bg-primary/5 hover:scale-105 active:scale-95">
                 Связаться напрямую

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
@@ -254,31 +255,35 @@ export default function RequirementsSection() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center max-w-lg sm:max-w-none mx-auto">
-              <button className={`
-                w-full sm:w-auto
-                bg-primary hover:bg-primary-dark text-background 
-                font-semibold text-base sm:text-lg lg:text-xl 
-                px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                rounded-full transition-all duration-300 
-                shadow-lg hover:shadow-xl 
-                ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-                relative overflow-hidden group
-              `}>
-                <span className="relative z-10">Обсудить проект</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
-              </button>
+              <Link href="/calculator" className="w-full sm:w-auto">
+                <button className={`
+                  w-full
+                  bg-primary hover:bg-primary-dark text-background 
+                  font-semibold text-base sm:text-lg lg:text-xl 
+                  px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
+                  rounded-full transition-all duration-300 
+                  shadow-lg hover:shadow-xl 
+                  ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
+                  relative overflow-hidden group
+                `}>
+                  <span className="relative z-10">Обсудить проект</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
+                </button>
+              </Link>
               
-              <button className={`
-                w-full sm:w-auto
-                border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary
-                font-semibold text-base sm:text-lg lg:text-xl 
-                px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                rounded-full transition-all duration-300 
-                hover:bg-primary/5 
-                ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-              `}>
-                Узнать цену
-              </button>
+              <Link href="/calculator" className="w-full sm:w-auto">
+                <button className={`
+                  w-full
+                  border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary
+                  font-semibold text-base sm:text-lg lg:text-xl 
+                  px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
+                  rounded-full transition-all duration-300 
+                  hover:bg-primary/5 
+                  ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
+                `}>
+                  Узнать цену
+                </button>
+              </Link>
             </div>
           </div>
         </div>

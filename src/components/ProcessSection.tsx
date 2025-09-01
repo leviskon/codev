@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
@@ -127,9 +128,11 @@ export default function ProcessSection() {
         <div className={`text-center mt-6 sm:mt-8 lg:mt-10 ${
           isVisible ? 'animate-section-slide-up delay-1000' : 'opacity-0'
         }`}>
-          <button className="bg-primary hover:bg-primary-dark text-background font-semibold text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
-            Начать проект прямо сейчас
-          </button>
+          <Link href="/calculator">
+            <button className="bg-primary hover:bg-primary-dark text-background font-semibold text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
+              Начать проект прямо сейчас
+            </button>
+          </Link>
         </div>
       </div>
     </section>

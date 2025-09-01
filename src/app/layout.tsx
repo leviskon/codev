@@ -39,6 +39,9 @@ export default function RootLayout({
           type="font/otf"
           crossOrigin="anonymous"
         />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/preline@2.0.3/dist/preline.min.css" />
+        <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/preline@2.0.3/dist/preline.min.js"></script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
