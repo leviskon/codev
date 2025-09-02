@@ -67,9 +67,78 @@ interface Proposal {
 }
 
 interface Contact {
-  name: string;
-  phone: string;
-  email: string;
+  fullName: string;
+  whatsapp: string;
+}
+
+// Typewriter анимация компонент
+function TypewriterAnimation() {
+  const [currentText, setCurrentText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isTyping, setIsTyping] = useState(true)
+  const [showCursor, setShowCursor] = useState(true)
+
+  const texts = [
+    'ваши требования к проекту',
+    'потенциальные сроки реализации', 
+    'сложность разработки',
+    'необходимый технологический стек',
+    'объём работы команды',
+    'возможные риски и ограничения'
+  ]
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+
+    const currentFullText = texts[currentIndex]
+    
+    if (isTyping) {
+      if (currentText.length < currentFullText.length) {
+        timeout = setTimeout(() => {
+          setCurrentText(prev => currentFullText.slice(0, prev.length + 1))
+        }, 80) // Скорость печати
+      } else {
+        // Пауза после завершения печати
+        timeout = setTimeout(() => {
+          setIsTyping(false)
+        }, 1500)
+      }
+    } else {
+      if (currentText.length > 0) {
+        timeout = setTimeout(() => {
+          setCurrentText(prev => prev.slice(0, -1))
+        }, 50) // Скорость стирания
+      } else {
+        // Пауза перед следующей строкой
+        timeout = setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % texts.length)
+          setIsTyping(true)
+        }, 500)
+      }
+    }
+
+    return () => {
+      if (timeout) clearTimeout(timeout)
+    }
+  }, [currentText, currentIndex, isTyping])
+
+  // Мигание курсора
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex items-center text-sm">
+      <span className="text-gray-400">Анализируем&nbsp;</span>{" "}
+      <span className="text-black">
+        {currentText}
+        <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}>|</span>
+      </span>
+    </div>
+  )
 }
 
 export default function AiSolutionPicker() {
@@ -95,7 +164,7 @@ export default function AiSolutionPicker() {
   const [selectedTechs, setSelectedTechs] = useState<string[]>([])
   const [context, setContext] = useState<string>('')
   const [showRequestModal, setShowRequestModal] = useState<boolean>(false)
-  const [contact, setContact] = useState<Contact>({name:'', phone:'', email:''})
+  const [contact, setContact] = useState<Contact>({fullName:'', whatsapp:''})
   const [activeResultTab, setActiveResultTab] = useState<string>('MVP')
   const [proposal, setProposal] = useState<Proposal | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -107,6 +176,13 @@ export default function AiSolutionPicker() {
   const [timelineRange, setTimelineRange] = useState<{min: number, max: number}>({min: 2, max: 12})
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [selectedRecommendations, setSelectedRecommendations] = useState<number[]>([])
+  
+  // Состояния для редактирования инпутов
+  const [budgetInputs, setBudgetInputs] = useState<{min: string, max: string}>({min: '', max: ''})
+  const [timelineInputs, setTimelineInputs] = useState<{min: string, max: string}>({min: '', max: ''})
+  const [inputFocus, setInputFocus] = useState<{budget_min: boolean, budget_max: boolean, timeline_min: boolean, timeline_max: boolean}>({
+    budget_min: false, budget_max: false, timeline_min: false, timeline_max: false
+  })
 
   // helpers
   const toggleGoals = (arr: string[], setter: React.Dispatch<React.SetStateAction<string[]>>, val: string) => {
@@ -144,7 +220,7 @@ export default function AiSolutionPicker() {
 
 
   const resetWizard = ()=>{
-    setStep(1); setSelectedBusiness(''); setSelectedGoals([]); setBudgetLevel('MVP'); setSelectedTechs([]); setContext(''); setProposal(null); setCustomBusiness(''); setShowCustomBusiness(false); setCustomGoal(''); setShowCustomGoal(false); setBudgetRange({min: 20000, max: 2000000}); setTimelineRange({min: 2, max: 12}); setIsGenerating(false); setSelectedRecommendations([])
+    setStep(1); setSelectedBusiness(''); setSelectedGoals([]); setBudgetLevel('MVP'); setSelectedTechs([]); setContext(''); setProposal(null); setCustomBusiness(''); setShowCustomBusiness(false); setCustomGoal(''); setShowCustomGoal(false); setBudgetRange({min: 20000, max: 2000000}); setTimelineRange({min: 2, max: 12}); setIsGenerating(false); setSelectedRecommendations([]); setBudgetInputs({min: '', max: ''}); setTimelineInputs({min: '', max: ''}); setInputFocus({budget_min: false, budget_max: false, timeline_min: false, timeline_max: false}); setContact({fullName:'', whatsapp:''})
   }
 
   const editDetails = () => {
@@ -159,6 +235,117 @@ export default function AiSolutionPicker() {
         ? prev.filter(i => i !== index)
         : [...prev, index]
     )
+  }
+
+  // Функции для валидации инпутов при потере фокуса
+  const validateBudgetInput = (field: 'min' | 'max', value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, '')
+    
+    if (cleanValue === '' || cleanValue === '0') {
+      // Если поле пустое, не меняем значение, просто очищаем инпут
+      if (field === 'min') {
+        setBudgetInputs({...budgetInputs, min: ''})
+      } else {
+        setBudgetInputs({...budgetInputs, max: ''})
+      }
+      return
+    }
+
+    const numValue = Number(cleanValue)
+    
+    if (field === 'min') {
+      if (numValue >= 20000 && numValue <= 2000000 && numValue <= budgetRange.max) {
+        setBudgetRange({...budgetRange, min: numValue})
+      }
+      setBudgetInputs({...budgetInputs, min: ''})
+    } else {
+      if (numValue >= 20000 && numValue <= 2000000 && numValue >= budgetRange.min) {
+        setBudgetRange({...budgetRange, max: numValue})
+      }
+      setBudgetInputs({...budgetInputs, max: ''})
+    }
+  }
+
+  const validateTimelineInput = (field: 'min' | 'max', value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, '')
+    
+    if (cleanValue === '' || cleanValue === '0') {
+      // Если поле пустое, не меняем значение, просто очищаем инпут
+      if (field === 'min') {
+        setTimelineInputs({...timelineInputs, min: ''})
+      } else {
+        setTimelineInputs({...timelineInputs, max: ''})
+      }
+      return
+    }
+
+    const numValue = Number(cleanValue)
+    
+    if (field === 'min') {
+      if (numValue >= 1 && numValue <= 52 && numValue <= timelineRange.max) {
+        setTimelineRange({...timelineRange, min: numValue})
+      }
+      setTimelineInputs({...timelineInputs, min: ''})
+    } else {
+      if (numValue >= 1 && numValue <= 52 && numValue >= timelineRange.min) {
+        setTimelineRange({...timelineRange, max: numValue})
+      }
+      setTimelineInputs({...timelineInputs, max: ''})
+    }
+  }
+
+  // Функция отправки заявки с PDF
+  const submitRequest = async () => {
+    if (!contact.fullName || !contact.whatsapp) {
+      setToast('Пожалуйста, заполните все поля')
+      return
+    }
+
+    if (!proposal) {
+      setToast('Ошибка: предложение не найдено')
+      return
+    }
+
+    try {
+      setToast('Отправляем заявку...')
+      
+      const requestData = {
+        contact,
+        proposal,
+        selectedRecommendations,
+        projectData: {
+          business: selectedBusiness === 'Другое' && customBusiness ? customBusiness : selectedBusiness,
+          goals: selectedGoals.includes('Другое') && customGoal 
+            ? selectedGoals.filter(g => g !== 'Другое').concat(customGoal)
+            : selectedGoals,
+          technologies: selectedTechs,
+          context,
+          budgetRange,
+          timelineRange
+        },
+        totalPrice: getTotalPriceAndTime().price,
+        totalWeeks: getTotalPriceAndTime().weeks
+      }
+
+      const response = await fetch('/api/send-proposal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+
+      if (response.ok) {
+        setToast('Заявка успешно отправлена! PDF отправлен администратору.')
+        setShowRequestModal(false)
+        setContact({fullName:'', whatsapp:''})
+      } else {
+        setToast('Ошибка при отправке заявки')
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error)
+      setToast('Ошибка при отправке заявки')
+    }
   }
 
   // Рассчитываем итоговую стоимость и сроки с учетом выбранных рекомендаций
@@ -466,13 +653,7 @@ export default function AiSolutionPicker() {
     }
   }
 
-  const submitRequest = ()=>{
-    // simulate sending to CRM
-    console.log('CRM submit', {contact, selectedBusiness, selectedGoals, budgetLevel, selectedTechs, context})
-    setShowRequestModal(false)
-    setToast('Заявка отправлена — мы свяжемся в течение рабочего дня')
-    setTimeout(()=>setToast(null),4000)
-  }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -629,7 +810,7 @@ export default function AiSolutionPicker() {
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <div className="mb-6">
             <h1 className="text-2xl font-semibold text-black mb-2">Подбор цифрового решения (с ИИ)</h1>
-            <p className="text-sm text-gray-400 font-light">Быстрый конфигуратор: выберите варианты, опишите контекст и получите три варианта предложения.</p>
+            <p className="text-sm text-gray-400 font-light">Стоимость и сроки являются примерными. Окончательные цены и временные рамки можно обсудить и изменить в зависимости от ваших требований.</p>
           </div>
 
           {/* Steps container */}
@@ -756,18 +937,17 @@ export default function AiSolutionPicker() {
                         <label className="block text-xs text-gray-500 mb-1">От</label>
                         <input
                           type="text"
-                          value={budgetRange.min.toLocaleString() + ' KGS'}
+                          value={inputFocus.budget_min ? budgetInputs.min : budgetRange.min.toLocaleString() + ' KGS'}
                           onChange={(e) => {
-                            const value = Number(e.target.value.replace(/[^0-9]/g, ''));
-                            if (value >= 20000 && value <= 2000000 && value <= budgetRange.max) {
-                              setBudgetRange({...budgetRange, min: value});
-                            }
+                            setBudgetInputs({...budgetInputs, min: e.target.value});
                           }}
                           onFocus={(e) => {
-                            e.target.value = budgetRange.min.toString();
+                            setInputFocus({...inputFocus, budget_min: true});
+                            setBudgetInputs({...budgetInputs, min: budgetRange.min.toString()});
                           }}
                           onBlur={(e) => {
-                            e.target.value = budgetRange.min.toLocaleString() + ' KGS';
+                            setInputFocus({...inputFocus, budget_min: false});
+                            validateBudgetInput('min', e.target.value);
                           }}
                           className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
@@ -776,18 +956,17 @@ export default function AiSolutionPicker() {
                         <label className="block text-xs text-gray-500 mb-1">До</label>
                         <input
                           type="text"
-                          value={budgetRange.max.toLocaleString() + ' KGS'}
+                          value={inputFocus.budget_max ? budgetInputs.max : budgetRange.max.toLocaleString() + ' KGS'}
                           onChange={(e) => {
-                            const value = Number(e.target.value.replace(/[^0-9]/g, ''));
-                            if (value >= 20000 && value <= 2000000 && value >= budgetRange.min) {
-                              setBudgetRange({...budgetRange, max: value});
-                            }
+                            setBudgetInputs({...budgetInputs, max: e.target.value});
                           }}
                           onFocus={(e) => {
-                            e.target.value = budgetRange.max.toString();
+                            setInputFocus({...inputFocus, budget_max: true});
+                            setBudgetInputs({...budgetInputs, max: budgetRange.max.toString()});
                           }}
                           onBlur={(e) => {
-                            e.target.value = budgetRange.max.toLocaleString() + ' KGS';
+                            setInputFocus({...inputFocus, budget_max: false});
+                            validateBudgetInput('max', e.target.value);
                           }}
                           className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
@@ -850,12 +1029,17 @@ export default function AiSolutionPicker() {
                         <label className="block text-xs text-gray-500 mb-1">От</label>
                         <input
                           type="text"
-                          value={timelineRange.min.toString()}
+                          value={inputFocus.timeline_min ? timelineInputs.min : timelineRange.min.toString()}
                           onChange={(e) => {
-                            const value = Number(e.target.value.replace(/[^0-9]/g, ''));
-                            if (value >= 1 && value <= 52 && value <= timelineRange.max) {
-                              setTimelineRange({...timelineRange, min: value});
-                            }
+                            setTimelineInputs({...timelineInputs, min: e.target.value});
+                          }}
+                          onFocus={(e) => {
+                            setInputFocus({...inputFocus, timeline_min: true});
+                            setTimelineInputs({...timelineInputs, min: timelineRange.min.toString()});
+                          }}
+                          onBlur={(e) => {
+                            setInputFocus({...inputFocus, timeline_min: false});
+                            validateTimelineInput('min', e.target.value);
                           }}
                           className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
@@ -864,12 +1048,17 @@ export default function AiSolutionPicker() {
                         <label className="block text-xs text-gray-500 mb-1">До</label>
                         <input
                           type="text"
-                          value={timelineRange.max.toString()}
+                          value={inputFocus.timeline_max ? timelineInputs.max : timelineRange.max.toString()}
                           onChange={(e) => {
-                            const value = Number(e.target.value.replace(/[^0-9]/g, ''));
-                            if (value >= 1 && value <= 52 && value >= timelineRange.min) {
-                              setTimelineRange({...timelineRange, max: value});
-                            }
+                            setTimelineInputs({...timelineInputs, max: e.target.value});
+                          }}
+                          onFocus={(e) => {
+                            setInputFocus({...inputFocus, timeline_max: true});
+                            setTimelineInputs({...timelineInputs, max: timelineRange.max.toString()});
+                          }}
+                          onBlur={(e) => {
+                            setInputFocus({...inputFocus, timeline_max: false});
+                            validateTimelineInput('max', e.target.value);
                           }}
                           className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
@@ -919,7 +1108,9 @@ export default function AiSolutionPicker() {
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
                 <p className="mt-4 text-lg text-gray-600">Генерируем персональное предложение с помощью ИИ...</p>
-                <p className="mt-2 text-sm text-gray-400">Это может занять несколько секунд</p>
+                <div className="mt-2">
+                  <TypewriterAnimation />
+                </div>
               </div>
             )}
 
@@ -981,10 +1172,10 @@ export default function AiSolutionPicker() {
                   {/* Additional Recommendations */}
                   {proposal.additional_recommendations && proposal.additional_recommendations.length > 0 && (
                     <div className="mb-8">
-                      <h3 className="text-xl font-semibold text-black mb-4">🚀 Рекомендации для расширения проекта</h3>
+                      <h3 className="text-xl font-semibold text-black mb-4">Рекомендации для расширения проекта</h3>
                       <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-6 rounded-xl border border-amber-200 mb-4">
                         <p className="text-sm text-amber-800 mb-4">
-                          <strong>💡 Совет:</strong> Следующие функции не включены в основной бюджет, но могут значительно улучшить ваш продукт. 
+                          <strong>● Совет:</strong> Следующие функции не включены в основной бюджет, но могут значительно улучшить ваш продукт. 
                           Рассмотрите возможность увеличения бюджета и сроков для их реализации.
                         </p>
                       </div>
@@ -1038,7 +1229,7 @@ export default function AiSolutionPicker() {
                               {isSelected && (
                                 <div className="mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
                                   <p className="text-sm text-green-800 font-medium">
-                                    ✅ Включено в проект! Стоимость и сроки обновлены в итоговой цене.
+                                    ✓ Включено в проект! Стоимость и сроки обновлены в итоговой цене.
                                   </p>
                                 </div>
                               )}
@@ -1049,7 +1240,7 @@ export default function AiSolutionPicker() {
                       {selectedRecommendations.length > 0 && (
                         <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                           <p className="text-sm text-green-800">
-                            <strong>📊 Выбрано рекомендаций: {selectedRecommendations.length}</strong><br/>
+                            <strong>▼ Выбрано рекомендаций: {selectedRecommendations.length}</strong><br/>
                             <strong>Итоговая стоимость:</strong> {getTotalPriceAndTime().price.toLocaleString()} KGS<br/>
                             <strong>Итоговые сроки:</strong> {getTotalPriceAndTime().weeks} недель
                           </p>
@@ -1059,7 +1250,7 @@ export default function AiSolutionPicker() {
                       {selectedRecommendations.length === 0 && (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                           <p className="text-sm text-gray-600">
-                            <strong>💡 Подсказка:</strong> Нажмите "✅ Добавить" чтобы включить рекомендацию в проект и увидеть обновленную стоимость.
+                            <strong>● Подсказка:</strong> Нажмите "Добавить" чтобы включить рекомендацию в проект и увидеть обновленную стоимость.
                           </p>
                         </div>
                       )}
@@ -1190,12 +1381,7 @@ export default function AiSolutionPicker() {
                     </div>
                   )}
 
-                  {/* Action buttons after generation */}
-                  <div className="mt-8 flex flex-col gap-2 items-center">
-                    <button onClick={()=>{ setShowRequestModal(true) }} className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-200 font-medium">Отправить и получить -10%</button>
-                    <a href="https://t.me/" target="_blank" rel="noreferrer" className="text-sm underline text-gray-500 text-center pt-2 hover:text-gray-700 transition-colors duration-200">Обсудить в Telegram</a>
-                    <div className="mt-2 text-xs text-gray-400 font-light">Данные будут собраны для аналитики.</div>
-                  </div>
+
 
                 </div>
               </div>
@@ -1217,14 +1403,53 @@ export default function AiSolutionPicker() {
               <div className="mt-2 text-sm text-gray-400 font-light">Технологии</div>
               <div className="font-medium text-black">{selectedTechs.length ? selectedTechs.join(', ') : '—'}</div>
               <div className="mt-4 border-t pt-4">
-                <div className="text-xs text-gray-400 font-light">Выбранный бюджет</div>
-                <div className="text-lg font-bold text-black">{budgetRange.min.toLocaleString()} - {budgetRange.max.toLocaleString()} KGS</div>
-                <div className="text-xs text-gray-400 font-light mt-2">Выбранные сроки</div>
-                <div className="text-sm text-gray-700">{timelineRange.min} - {timelineRange.max} нед.</div>
+                <div className="mt-2 text-sm text-gray-400 font-light">Выбранный бюджет</div>
+                <div className="font-medium text-black">{budgetRange.min.toLocaleString()} - {budgetRange.max.toLocaleString()} KGS</div>
+                <div className="mt-2 text-sm text-gray-400 font-light">Выбранные сроки</div>
+                <div className="font-medium text-black">{timelineRange.min} - {timelineRange.max} нед.</div>
               </div>
             </div>
 
-
+            {/* Action buttons after generation */}
+            {step === 5 && !isGenerating && proposal && (
+              <div className="mt-6 pt-6 border-t border-gray-200 flex flex-col gap-2 items-center">
+                                <div className="relative group">
+                    <button
+                      onClick={() => { setShowRequestModal(true) }}
+                      className="relative inline-block p-px font-semibold leading-6 text-white bg-gray-800 shadow-2xl cursor-pointer rounded-xl shadow-zinc-900 transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
+                    >
+                      <span
+                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400 via-blue-500 to-purple-500 p-[2px] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                      ></span>
+                
+                      <span className="relative z-10 block px-6 py-3 rounded-xl bg-gray-950">
+                        <div className="relative z-10 flex items-center space-x-2">
+                          <span className="transition-all duration-500 group-hover:translate-x-1">
+                            Отправить и получить -10%
+                          </span>
+                          <svg
+                            className="w-6 h-6 transition-transform duration-500 group-hover:translate-x-1"
+                            data-slot="icon"
+                            aria-hidden="true"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              clipRule="evenodd"
+                              d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                              fillRule="evenodd"
+                            ></path>
+                          </svg>
+                        </div>
+                      </span>
+                    </button>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-400 font-light text-center">↑ Отправьте заявку и мы напишем вам в течение часа.</div>
+                <a href="https://t.me/" target="_blank" rel="noreferrer" className="text-sm underline text-gray-500 text-center pt-2 hover:text-gray-700 transition-colors duration-200">Обсудить в Telegram</a>
+              </div>
+            )}
+            
           </div>
         </aside>
         </div>
@@ -1234,14 +1459,45 @@ export default function AiSolutionPicker() {
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-md border border-gray-300">
-            <h3 className="font-medium mb-2 text-black">Оставить заявку</h3>
-            <p className="text-sm text-gray-600 mb-4">Мы свяжемся в течение рабочего дня</p>
-            <input value={contact.name} onChange={e=>setContact({...contact,name:e.target.value})} placeholder="Имя" className="w-full p-3 border border-gray-300 rounded-md mb-3 text-black" />
-            <input value={contact.phone} onChange={e=>setContact({...contact,phone:e.target.value})} placeholder="Телефон" className="w-full p-3 border border-gray-300 rounded-md mb-3 text-black" />
-            <input value={contact.email} onChange={e=>setContact({...contact,email:e.target.value})} placeholder="Email" className="w-full p-3 border border-gray-300 rounded-md mb-3 text-black" />
+            <h3 className="font-medium mb-2 text-black">Получить предложение со скидкой -10%</h3>
+            <p className="text-sm text-gray-600 mb-4">Мы отправим детальное предложение в PDF и напишем вам в течение часа</p>
+            
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">ФИО *</label>
+              <input 
+                value={contact.fullName} 
+                onChange={e=>setContact({...contact,fullName:e.target.value})} 
+                placeholder="Введите ваше полное имя" 
+                className="w-full p-3 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp номер *</label>
+              <input 
+                value={contact.whatsapp} 
+                onChange={e=>setContact({...contact,whatsapp:e.target.value})} 
+                placeholder="+996 XXX XXX XXX" 
+                className="w-full p-3 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              />
+            </div>
+            
             <div className="flex gap-2 justify-end">
-              <button onClick={()=>setShowRequestModal(false)} className="px-3 py-2 rounded-md border border-gray-300 text-black">Отмена</button>
-              <button onClick={submitRequest} className="px-3 py-2 rounded-md bg-black text-white">Отправить</button>
+              <button 
+                onClick={()=>setShowRequestModal(false)} 
+                className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors"
+              >
+                Отмена
+              </button>
+              <button 
+                onClick={submitRequest} 
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                disabled={!contact.fullName || !contact.whatsapp}
+              >
+                Отправить заявку
+              </button>
             </div>
           </div>
         </div>
@@ -1255,3 +1511,4 @@ export default function AiSolutionPicker() {
     </div>
   )
 }
+
