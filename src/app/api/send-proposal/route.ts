@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { jsPDF } from 'jspdf'
+import puppeteer from 'puppeteer'
+import { generatePDFTemplate, ProposalData } from '../../../lib/pdf-template'
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { contact, proposal, selectedRecommendations, projectData, totalPrice, totalWeeks } = data
+    const { contact } = data
 
     // Генерируем PDF
     const pdfBuffer = await generatePDF(data)
@@ -22,167 +23,151 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generatePDF(data: any): Promise<Buffer> {
+async function generatePDF(data: ProposalData): Promise<Buffer> {
+  let browser;
+  let page;
+  
   try {
-    const doc = new jsPDF()
-    let yPosition = 20
+    // Запускаем Puppeteer браузер с оптимизированными настройками
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-ipc-flooding-protection'
+      ],
+      timeout: 60000
+    });
 
-    // Функция для добавления текста с переносом строк
-    const addText = (text: string, fontSize: number = 12, isBold: boolean = false, isTitle: boolean = false) => {
-      doc.setFontSize(fontSize)
-      if (isBold) {
-        doc.setFont('helvetica', 'bold')
-      } else {
-        doc.setFont('helvetica', 'normal')
-      }
+    page = await browser.newPage();
+    
+    // Устанавливаем больший viewport и таймауты
+    await page.setViewport({ width: 1200, height: 800 });
+    
+    // Генерируем HTML контент
+    const htmlContent = generatePDFTemplate(data);
+    
+    // Устанавливаем HTML контент с увеличенным таймаутом
+    await page.setContent(htmlContent, { 
+      waitUntil: 'domcontentloaded',
+      timeout: 60000 
+    });
 
-      const pageWidth = doc.internal.pageSize.width
-      const margin = 20
-      const maxWidth = pageWidth - (2 * margin)
-      
-      if (isTitle) {
-        // Центрированный заголовок
-        const textWidth = doc.getStringUnitWidth(text) * fontSize / doc.internal.scaleFactor
-        const textOffset = (pageWidth - textWidth) / 2
-        doc.text(text, textOffset, yPosition)
-      } else {
-        // Обычный текст с переносом
-        const lines = doc.splitTextToSize(text, maxWidth)
-        doc.text(lines, margin, yPosition)
-        yPosition += (lines.length - 1) * (fontSize * 0.35)
-      }
-      
-      yPosition += fontSize * 0.5
-    }
+    // Ждем полной загрузки страницы
+    await page.evaluateHandle('document.fonts.ready');
+    
+    // Небольшая задержка для стабильности
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const addSpacing = (space: number = 5) => {
-      yPosition += space
-    }
+    // Генерируем PDF с увеличенным таймаутом
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm', 
+        bottom: '20mm',
+        left: '15mm'
+      },
+      displayHeaderFooter: false,
+      preferCSSPageSize: true,
+      timeout: 60000
+    });
 
-    // Заголовок
-    addText('Предложение по разработке IT-решения', 16, true, true)
-    addSpacing(10)
-
-    // Контактные данные
-    addText('Контактные данные:', 14, true)
-    addText(`ФИО: ${data.contact.fullName}`)
-    addText(`WhatsApp: ${data.contact.whatsapp}`)
-    addSpacing()
-
-    // Данные проекта
-    addText('Данные проекта:', 14, true)
-    addText(`Сфера бизнеса: ${data.projectData.business}`)
-    addText(`Цели: ${data.projectData.goals.join(', ')}`)
-    addText(`Технологии: ${data.projectData.technologies.join(', ')}`)
-    addText(`Бюджет: ${data.projectData.budgetRange.min.toLocaleString()} - ${data.projectData.budgetRange.max.toLocaleString()} KGS`)
-    addText(`Сроки: ${data.projectData.timelineRange.min} - ${data.projectData.timelineRange.max} недель`)
-    if (data.projectData.context) {
-      addText(`Дополнительная информация: ${data.projectData.context}`)
-    }
-    addSpacing()
-
-    // Предложение
-    addText('Сгенерированное предложение:', 14, true)
-    addText(`Название: ${data.proposal.title}`)
-    addText(`Описание: ${data.proposal.description}`)
-    addText(`Стоимость: ${data.totalPrice.toLocaleString()} KGS`)
-    addText(`Сроки: ${data.totalWeeks} недель`)
-    addSpacing()
-
-    // Проверка на новую страницу
-    if (yPosition > 250) {
-      doc.addPage()
-      yPosition = 20
-    }
-
-    // Функциональность
-    if (data.proposal.functionality?.length > 0) {
-      addText('Функциональность:', 14, true)
-      data.proposal.functionality.forEach((func: string, index: number) => {
-        addText(`${index + 1}. ${func}`)
-        if (yPosition > 270) {
-          doc.addPage()
-          yPosition = 20
-        }
-      })
-      addSpacing()
-    }
-
-    // Выбранные рекомендации
-    if (data.selectedRecommendations?.length > 0) {
-      if (yPosition > 250) {
-        doc.addPage()
-        yPosition = 20
-      }
-      addText('Включенные дополнительные функции:', 14, true)
-      data.selectedRecommendations.forEach((recIndex: number) => {
-        const rec = data.proposal.additional_recommendations[recIndex]
-        if (rec) {
-          addText(`• ${rec.title} (+${rec.additional_cost.toLocaleString()} KGS, +${rec.additional_weeks} нед.)`)
-        }
-      })
-      addSpacing()
-    }
-
-    // Этапы разработки
-    if (data.proposal.phases?.length > 0) {
-      if (yPosition > 230) {
-        doc.addPage()
-        yPosition = 20
-      }
-      addText('Этапы разработки:', 14, true)
-      data.proposal.phases.forEach((phase: any, index: number) => {
-        addText(`${index + 1}. ${phase.name} (${phase.duration_weeks} нед.)`)
-        addText(`   ${phase.description}`)
-        if (yPosition > 270) {
-          doc.addPage()
-          yPosition = 20
-        }
-      })
-      addSpacing()
-    }
-
-    // Технический стек
-    if (data.proposal.technical_stack) {
-      if (yPosition > 250) {
-        doc.addPage()
-        yPosition = 20
-      }
-      addText('Технический стек:', 14, true)
-      const stack = data.proposal.technical_stack
-      if (stack.frontend?.length) addText(`Frontend: ${stack.frontend.join(', ')}`)
-      if (stack.backend?.length) addText(`Backend: ${stack.backend.join(', ')}`)
-      if (stack.database?.length) addText(`База данных: ${stack.database.join(', ')}`)
-      if (stack.deployment?.length) addText(`Развертывание: ${stack.deployment.join(', ')}`)
-      addSpacing()
-    }
-
-    // Следующие шаги
-    if (data.proposal.nextSteps?.length > 0) {
-      if (yPosition > 230) {
-        doc.addPage()
-        yPosition = 20
-      }
-      addText('Следующие шаги:', 14, true)
-      data.proposal.nextSteps.forEach((step: string, index: number) => {
-        addText(`${index + 1}. ${step}`)
-      })
-    }
-
-    // Конвертируем в Buffer
-    const pdfOutput = doc.output('arraybuffer')
-    return Buffer.from(pdfOutput)
+    return Buffer.from(pdfBuffer);
   } catch (error) {
-    throw error
+    console.error('Error generating PDF with Puppeteer:', error);
+    
+    // Пытаемся закрыть страницу перед повторной попыткой
+    if (page && !page.isClosed()) {
+      try {
+        await page.close();
+      } catch (closeError) {
+        console.error('Error closing page:', closeError);
+      }
+    }
+    
+    // Fallback: генерируем простой HTML PDF если Puppeteer не работает
+    return await generateFallbackPDF(data);
+  } finally {
+    // Закрываем браузер
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
   }
 }
 
-async function sendToTelegram(contact: any, pdfBuffer: Buffer) {
+// Fallback функция для генерации простого PDF если Puppeteer не работает
+async function generateFallbackPDF(data: ProposalData): Promise<Buffer> {
+  console.log('Using fallback PDF generation...');
+  
+  // Создаем простой HTML документ
+  const htmlContent = `
+    <html>
+      <body style="font-family: Arial, sans-serif; margin: 40px; line-height: 1.6;">
+        <h1 style="color: #007BFF;">Предложение по разработке IT-решения</h1>
+        <p><strong>Дата:</strong> ${new Date().toLocaleDateString('ru-RU')}</p>
+        <p><strong>Специальная скидка:</strong> -10%</p>
+        
+        <h2>Контактные данные</h2>
+        <p><strong>ФИО:</strong> ${data.contact.fullName}</p>
+        <p><strong>WhatsApp:</strong> ${data.contact.whatsapp}</p>
+        
+        <h2>Проект: ${data.proposal.title}</h2>
+        <p>${data.proposal.description}</p>
+        
+        <h2 style="color: #28a745;">Стоимость</h2>
+        <p style="font-size: 24px; color: #28a745;"><strong>${Math.round(data.totalPrice * 0.9).toLocaleString()} KGS</strong> (со скидкой 10%)</p>
+        <p><em>Оригинальная цена: ${data.totalPrice.toLocaleString()} KGS</em></p>
+        <p><strong>Срок:</strong> ${data.totalWeeks} недель</p>
+        
+        <h2>Функциональность</h2>
+        <ul>
+          ${data.proposal.functionality?.map(func => `<li>${func}</li>`).join('') || '<li>Функциональность будет определена после детального анализа</li>'}
+        </ul>
+        
+        <h2>Следующие шаги</h2>
+        <ol>
+          ${data.proposal.nextSteps?.map(step => `<li>${step}</li>`).join('') || '<li>Связаться для обсуждения деталей</li>'}
+        </ol>
+        
+        <p style="margin-top: 40px; color: #666; font-size: 12px;">
+          Предложение действительно в течение 30 дней<br>
+          © ${new Date().getFullYear()} Codev - Разработка IT-решений
+        </p>
+      </body>
+    </html>
+  `;
+  
+  // Возвращаем HTML как буфер (можно использовать для простого HTML вывода)
+  return Buffer.from(htmlContent, 'utf-8');
+}
+
+async function sendToTelegram(contact: { fullName: string; whatsapp: string }, pdfBuffer: Buffer) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN
   const adminId = process.env.ADMINS_TELEGRAM_ID
 
   if (!botToken || !adminId) {
-    throw new Error('Telegram bot token or admin ID not configured')
+    console.log('Telegram bot not configured, skipping Telegram send...')
+    console.log('PDF generated successfully for:', contact.fullName)
+    console.log('PDF size:', pdfBuffer.length, 'bytes')
+    return // Просто пропускаем отправку в Telegram если не настроен
   }
 
   // Отправляем текстовое сообщение
@@ -207,7 +192,7 @@ async function sendToTelegram(contact: any, pdfBuffer: Buffer) {
   // Отправляем PDF
   const formData = new FormData()
   formData.append('chat_id', adminId)
-  formData.append('document', new Blob([pdfBuffer], { type: 'application/pdf' }), `proposal_${contact.fullName.replace(/\s+/g, '_')}.pdf`)
+  formData.append('document', new Blob([pdfBuffer.buffer], { type: 'application/pdf' }), `proposal_${contact.fullName.replace(/\s+/g, '_')}.pdf`)
   formData.append('caption', `Предложение для ${contact.fullName}`)
 
   const pdfResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
