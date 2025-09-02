@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import puppeteer from 'puppeteer'
 import { generatePDFTemplate, ProposalData } from '../../../lib/pdf-template'
-import { getAdminTelegramIds } from '../../../lib/database'
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { contact } = data
 
     // Генерируем PDF
     const pdfBuffer = await generatePDF(data)
 
-    // Отправляем в Telegram
-    await sendToTelegram(contact, pdfBuffer)
-
-    return NextResponse.json({ success: true })
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="proposal.pdf"',
+      },
+    })
   } catch (error) {
-    console.error('Error sending proposal:', error)
+    console.error('Error generating PDF:', error)
     return NextResponse.json(
-      { error: 'Failed to send proposal' },
+      { error: 'Failed to generate PDF' },
       { status: 500 }
     )
   }
@@ -170,103 +170,4 @@ async function generateFallbackPDF(data: ProposalData): Promise<Buffer> {
   
   // Возвращаем HTML как буфер (можно использовать для простого HTML вывода)
   return Buffer.from(htmlContent, 'utf-8');
-}
-
-async function sendToTelegram(contact: { fullName: string; whatsapp: string }, pdfBuffer: Buffer) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN
-
-  if (!botToken) {
-    console.log('Telegram bot token not configured, skipping Telegram send...')
-    console.log('PDF generated successfully for:', contact.fullName)
-    console.log('PDF size:', pdfBuffer.length, 'bytes')
-    return // Просто пропускаем отправку в Telegram если не настроен
-  }
-
-  // Получаем список админских Telegram ID из базы данных
-  const adminIds = await getAdminTelegramIds()
-  
-  if (adminIds.length === 0) {
-    console.log('No admin Telegram IDs found in database, skipping Telegram send...')
-    console.log('PDF generated successfully for:', contact.fullName)
-    return
-  }
-
-  console.log(`Отправляем уведомления ${adminIds.length} администраторам:`, adminIds)
-
-  // Создаем имя файла с ФИО клиента и датой/временем
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('ru-RU').replace(/\./g, '-') // ДД-ММ-ГГГГ
-  const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }).replace(':', '-') // ЧЧ-ММ
-  const fileName = `Предложение_${contact.fullName.replace(/\s+/g, '_')}_${dateStr}_${timeStr}.pdf`
-
-  // Подготавливаем сообщения
-  const message = `🆕 Новая заявка на разработку!\n\n👤 ФИО: ${contact.fullName}\n📱 WhatsApp: ${contact.whatsapp}\n\n📄 PDF с детальным предложением прикреплен ниже.`
-
-  // Отправляем всем администраторам
-  const sendPromises = adminIds.map(async (adminId) => {
-    try {
-      console.log(`Отправляем сообщение администратору ${adminId}...`)
-      
-      // Отправляем текстовое сообщение
-      const textResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: adminId,
-          text: message,
-          parse_mode: 'HTML'
-        }),
-      })
-
-      if (!textResponse.ok) {
-        const errorText = await textResponse.text()
-        console.error(`Ошибка отправки текста администратору ${adminId}:`, errorText)
-        return { adminId, success: false, error: 'Failed to send text message' }
-      }
-
-      // Отправляем PDF
-      const formData = new FormData()
-      formData.append('chat_id', adminId)
-      formData.append('document', new Blob([pdfBuffer.buffer], { type: 'application/pdf' }), fileName)
-      formData.append('caption', `📄 Предложение для ${contact.fullName} (создано: ${now.toLocaleString('ru-RU')})`)
-
-      const pdfResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!pdfResponse.ok) {
-        const errorText = await pdfResponse.text()
-        console.error(`Ошибка отправки PDF администратору ${adminId}:`, errorText)
-        return { adminId, success: false, error: 'Failed to send PDF' }
-      }
-
-      console.log(`✅ Успешно отправлено администратору ${adminId}`)
-      return { adminId, success: true }
-
-    } catch (error) {
-      console.error(`Ошибка отправки администратору ${adminId}:`, error)
-      return { adminId, success: false, error: error.message }
-    }
-  })
-
-  // Ждем результатов отправки всем администраторам
-  const results = await Promise.all(sendPromises)
-  
-  const successCount = results.filter(r => r.success).length
-  const failureCount = results.filter(r => !r.success).length
-  
-  console.log(`Результаты отправки: ${successCount} успешно, ${failureCount} ошибок`)
-  
-  if (failureCount > 0) {
-    const failedAdmins = results.filter(r => !r.success).map(r => r.adminId)
-    console.warn('Не удалось отправить администраторам:', failedAdmins)
-  }
-  
-  // Если хотя бы одному администратору отправили, считаем это успехом
-  if (successCount === 0) {
-    throw new Error('Failed to send to any admin')
-  }
 }

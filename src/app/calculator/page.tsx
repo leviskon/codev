@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import _ from 'lodash'
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js'
 
 // NOTE: This single-file React component assumes TailwindCSS is available
 // If you don't have Tailwind in your environment, include the CDN in index.html:
@@ -131,7 +132,7 @@ function TypewriterAnimation() {
   }, [])
 
   return (
-    <div className="flex items-center text-sm">
+    <div className="flex items-center text-xs sm:text-sm text-center">
       <span className="text-gray-400">Анализируем&nbsp;</span>{" "}
       <span className="text-black">
         {currentText}
@@ -176,6 +177,9 @@ export default function AiSolutionPicker() {
   const [timelineRange, setTimelineRange] = useState<{min: number, max: number}>({min: 2, max: 12})
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [selectedRecommendations, setSelectedRecommendations] = useState<number[]>([])
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [downloadPdf, setDownloadPdf] = useState<boolean>(false)
+  const [phoneValidation, setPhoneValidation] = useState<{isValid: boolean, message: string, formattedNumber?: string}>({isValid: true, message: ''})
   
   // Состояния для редактирования инпутов
   const [budgetInputs, setBudgetInputs] = useState<{min: string, max: string}>({min: '', max: ''})
@@ -220,7 +224,7 @@ export default function AiSolutionPicker() {
 
 
   const resetWizard = ()=>{
-    setStep(1); setSelectedBusiness(''); setSelectedGoals([]); setBudgetLevel('MVP'); setSelectedTechs([]); setContext(''); setProposal(null); setCustomBusiness(''); setShowCustomBusiness(false); setCustomGoal(''); setShowCustomGoal(false); setBudgetRange({min: 20000, max: 2000000}); setTimelineRange({min: 2, max: 12}); setIsGenerating(false); setSelectedRecommendations([]); setBudgetInputs({min: '', max: ''}); setTimelineInputs({min: '', max: ''}); setInputFocus({budget_min: false, budget_max: false, timeline_min: false, timeline_max: false}); setContact({fullName:'', whatsapp:''})
+    setStep(1); setSelectedBusiness(''); setSelectedGoals([]); setBudgetLevel('MVP'); setSelectedTechs([]); setContext(''); setProposal(null); setCustomBusiness(''); setShowCustomBusiness(false); setCustomGoal(''); setShowCustomGoal(false); setBudgetRange({min: 20000, max: 2000000}); setTimelineRange({min: 2, max: 12}); setIsGenerating(false); setSelectedRecommendations([]); setBudgetInputs({min: '', max: ''}); setTimelineInputs({min: '', max: ''}); setInputFocus({budget_min: false, budget_max: false, timeline_min: false, timeline_max: false}); setContact({fullName:'', whatsapp:''}); setIsSubmitting(false); setDownloadPdf(false); setPhoneValidation({isValid: true, message: ''})
   }
 
   const editDetails = () => {
@@ -235,6 +239,51 @@ export default function AiSolutionPicker() {
         ? prev.filter(i => i !== index)
         : [...prev, index]
     )
+  }
+
+  // Функция валидации номера телефона
+  const validatePhoneNumber = (phoneNumber: string): {isValid: boolean, message: string, formattedNumber?: string} => {
+    if (!phoneNumber.trim()) {
+      return {isValid: false, message: 'Номер телефона обязателен'}
+    }
+
+    try {
+      // Убираем все не-цифровые символы кроме + в начале
+      const cleanNumber = phoneNumber.replace(/[^\d+]/g, '')
+      
+      // Проверяем минимальную длину
+      if (cleanNumber.length < 7) {
+        return {isValid: false, message: 'Номер слишком короткий'}
+      }
+
+      // Используем libphonenumber-js для валидации
+      const isValid = isValidPhoneNumber(cleanNumber)
+      
+      if (!isValid) {
+        return {isValid: false, message: 'Некорректный формат номера'}
+      }
+
+      // Форматируем номер если он валидный
+      try {
+        const parsedNumber = parsePhoneNumber(cleanNumber)
+        const formattedNumber = parsedNumber.formatInternational()
+        return {isValid: true, message: 'Номер корректен', formattedNumber}
+      } catch (error) {
+        // Если не удалось спарсить, но номер считается валидным, оставляем как есть
+        return {isValid: true, message: 'Номер корректен', formattedNumber: cleanNumber}
+      }
+    } catch (error) {
+      return {isValid: false, message: 'Ошибка при проверке номера'}
+    }
+  }
+
+  // Обработчик изменения номера WhatsApp
+  const handleWhatsAppChange = (value: string) => {
+    setContact({...contact, whatsapp: value})
+    
+    // Валидируем номер в реальном времени
+    const validation = validatePhoneNumber(value)
+    setPhoneValidation(validation)
   }
 
   // Функции для валидации инпутов при потере фокуса
@@ -294,10 +343,70 @@ export default function AiSolutionPicker() {
     }
   }
 
+  // Функция для скачивания PDF
+  const downloadPDFFile = async () => {
+    if (!proposal) return
+
+    try {
+      const requestData = {
+        contact,
+        proposal,
+        selectedRecommendations,
+        projectData: {
+          business: selectedBusiness === 'Другое' && customBusiness ? customBusiness : selectedBusiness,
+          goals: selectedGoals.includes('Другое') && customGoal 
+            ? selectedGoals.filter(g => g !== 'Другое').concat(customGoal)
+            : selectedGoals,
+          technologies: selectedTechs,
+          context,
+          budgetRange,
+          timelineRange
+        },
+        totalPrice: getTotalPriceAndTime().price,
+        totalWeeks: getTotalPriceAndTime().weeks
+      }
+
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        const now = new Date()
+        const dateStr = now.toLocaleDateString('ru-RU').replace(/\./g, '-')
+        const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }).replace(':', '-')
+        const fileName = `Предложение_${contact.fullName.replace(/\s+/g, '_')}_${dateStr}_${timeStr}.pdf`
+        
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+    }
+  }
+
   // Функция отправки заявки с PDF
   const submitRequest = async () => {
     if (!contact.fullName || !contact.whatsapp) {
       setToast('Пожалуйста, заполните все поля')
+      return
+    }
+
+    // Проверяем валидность номера телефона
+    const phoneValidationResult = validatePhoneNumber(contact.whatsapp)
+    if (!phoneValidationResult.isValid) {
+      setToast(`Ошибка номера: ${phoneValidationResult.message}`)
+      setPhoneValidation(phoneValidationResult)
       return
     }
 
@@ -307,7 +416,8 @@ export default function AiSolutionPicker() {
     }
 
     try {
-      setToast('Отправляем заявку...')
+      setIsSubmitting(true)
+      setToast('Генерируем PDF и отправляем заявку...')
       
       const requestData = {
         contact,
@@ -336,15 +446,25 @@ export default function AiSolutionPicker() {
       })
 
       if (response.ok) {
-        setToast('Заявка успешно отправлена! PDF отправлен администратору.')
+        setToast('🎉 Заявка успешно отправлена! PDF создан и отправлен администратору.')
+        
+        // Скачиваем PDF если чекбокс включен
+        if (downloadPdf) {
+          await downloadPDFFile()
+        }
+        
         setShowRequestModal(false)
         setContact({fullName:'', whatsapp:''})
+        setDownloadPdf(false)
+        setPhoneValidation({isValid: true, message: ''})
       } else {
-        setToast('Ошибка при отправке заявки')
+        setToast('❌ Ошибка при отправке заявки')
       }
     } catch (error) {
       console.error('Error submitting request:', error)
-      setToast('Ошибка при отправке заявки')
+      setToast('❌ Ошибка при отправке заявки')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -437,12 +557,13 @@ export default function AiSolutionPicker() {
 ТРЕБОВАНИЯ К ОТВЕТУ:
 1. ВАЖНО: Ответь СТРОГО в JSON формате. Никакого текста до или после JSON. Не используй markdown блоки.
 2. Создай ОДНО детальное предложение (не 3 варианта)
-3. КРИТИЧЕСКИ ВАЖНО: Цена ДОЛЖНА быть в пределах указанного диапазона. Если бюджет маленький - предложи соответствующий MVP.
+3. КРИТИЧЕСКИ ВАЖНО: Цена ДОЛЖНА быть в пределах указанного диапазона. Если бюджет маленький - предложи соответствующие функции.
 4. КРИТИЧЕСКИ ВАЖНО: Сроки ДОЛЖНЫ быть реалистичными. Не предлагай сложную функциональность за короткие сроки.
 5. Функциональность должна СТРОГО соответствовать бюджету и срокам. Для малого бюджета - базовые функции.
 6. Добавь дополнительные рекомендации, которые НЕ входят в основной проект (для увеличения бюджета)
 7. Укажи технический стек и архитектуру соответствующие бюджету
 8. Опиши реалистичные риски для данного бюджета
+9. Напиши функциональности и дополнительные рекомендации побробно и больше по 5 штук
 
 ФОРМАТ JSON:
 {
@@ -453,7 +574,10 @@ export default function AiSolutionPicker() {
   "functionality": [
     "Функция 1: подробное описание",
     "Функция 2: подробное описание",
-    "Функция 3: подробное описание"
+    "Функция 3: подробное описание",
+    "Функция 4: подробное описание",
+    "Функция 5: подробное описание"
+    ...
   ],
   "additional_recommendations": [
     {
@@ -462,7 +586,15 @@ export default function AiSolutionPicker() {
       "additional_cost": 50000,
       "additional_weeks": 2,
       "priority": "high"
-    }
+    },
+    {
+      "title": "Дополнительная функция 2",
+      "description": "Описание функции",
+      "additional_cost": 50000,
+      "additional_weeks": 2,
+      "priority": "high"
+    },
+    ...
   ],
   "phases": [
     {
@@ -626,32 +758,7 @@ export default function AiSolutionPicker() {
     }
   }
 
-  const downloadPdf = () => {
-    // open printable view — user can Save as PDF from browser print dialog
-    const el = document.createElement('div')
-    el.innerHTML = `<div style="font-family: Arial; padding: 20px; max-width:800px">
-      <h1>Предложение — ${new Date().toLocaleDateString()}</h1>
-      <h3>Выбор</h3>
-      <p><strong>Сфера:</strong> ${selectedBusiness === 'Другое' && customBusiness ? customBusiness : selectedBusiness}</p>
-      <p><strong>Цели:</strong> ${selectedGoals.join(', ')}</p>
-      <p><strong>Бюджет:</strong> ${budgetLevel}</p>
-      <p><strong>Технологии:</strong> ${selectedTechs.join(', ')}</p>
-      <hr/>${proposal ? `<h2>${proposal.title} — ${proposal.price.toLocaleString()} KGS — ${proposal.timeline_weeks} нед.</h2><p>${proposal.description}</p><div><h3>Функциональность:</h3><ul>${proposal.functionality.map(f => `<li>${f}</li>`).join('')}</ul></div>` : '<p>Нет предложений</p>'}
-    </div>`
-    const w = window.open('','_blank')
-    if (w) {
-      w.document.write(el.innerHTML)
-      w.document.close()
-      w.focus()
-      setTimeout(() => { 
-        try { 
-          if (w) w.print() 
-        } catch(e) { 
-          console.warn(e) 
-        } 
-      }, 500)
-    }
-  }
+
 
 
 
@@ -733,18 +840,18 @@ export default function AiSolutionPicker() {
         }
       `}</style>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 shadow-sm">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-xl font-semibold text-black">Калькулятор стоимости</h1>
-              <div className="text-sm text-gray-400 font-light">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h1 className="text-lg sm:text-xl font-semibold text-black">Калькулятор стоимости</h1>
+              <div className="text-xs sm:text-sm text-gray-400 font-light">
                 {step <= 4 ? `Шаг ${step} из 4` : 'Готово'}
               </div>
             </div>
             
-            {/* Step Navigation */}
-            <div className="flex items-center space-x-1">
+            {/* Step Navigation - Hidden on small screens, simplified on medium */}
+            <div className="hidden sm:flex items-center space-x-1">
               {[1, 2, 3, 4].map((stepNum) => {
                 const canNavigate = stepNum === 1 || 
                   (stepNum === 2 && selectedBusiness !== '') ||
@@ -755,7 +862,7 @@ export default function AiSolutionPicker() {
                 const stepLabels = {
                   1: { main: 'Сфера', sub: '' },
                   2: { main: 'Цели', sub: '' },
-                  3: { main: 'Бюджет и сроки', sub: '' },
+                  3: { main: 'Бюджет', sub: '' },
                   4: { main: 'Детали', sub: '' }
                 };
                 
@@ -768,7 +875,7 @@ export default function AiSolutionPicker() {
                       <span className={`flex items-center justify-center w-4 h-4 me-1 text-xs border rounded-full shrink-0 font-thin ${isActive ? 'border-black bg-black text-white' : 'border-gray-400 text-gray-400'}`}>
                         {stepNum}
                       </span>
-                      <span className="text-xs font-thin">
+                      <span className="text-xs font-thin hidden md:inline">
                         {stepLabels[stepNum as keyof typeof stepLabels].main}
                       </span>
                     </div>
@@ -787,7 +894,8 @@ export default function AiSolutionPicker() {
                     onClick={editDetails}
                     className="px-2 py-1 rounded text-xs font-thin bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-200"
                   >
-                    Редактировать детали
+                    <span className="hidden sm:inline">Редактировать детали</span>
+                    <span className="sm:hidden">Изменить</span>
                   </button>
                 </div>
               )}
@@ -804,13 +912,13 @@ export default function AiSolutionPicker() {
         </div>
       </header>
 
-      <div className="pt-32 p-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="pt-20 sm:pt-32 p-3 sm:p-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Main wizard */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-black mb-2">Подбор цифрового решения (с ИИ)</h1>
-            <p className="text-sm text-gray-400 font-light">Стоимость и сроки являются примерными. Окончательные цены и временные рамки можно обсудить и изменить в зависимости от ваших требований.</p>
+        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold text-black mb-2">Подбор цифрового решения (с ИИ)</h1>
+            <p className="text-xs sm:text-sm text-gray-400 font-light">Стоимость и сроки являются примерными. Окончательные цены и временные рамки можно обсудить и изменить в зависимости от ваших требований.</p>
           </div>
 
           {/* Steps container */}
@@ -823,7 +931,7 @@ export default function AiSolutionPicker() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {BUSINESS.map(b=> (
-                    <button key={b} onClick={()=>selectBusiness(b)} className={`px-3 py-1 rounded-full border font-light transition-colors duration-200 ${selectedBusiness === b ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{b}</button>
+                    <button key={b} onClick={()=>selectBusiness(b)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-light transition-colors duration-200 text-sm ${selectedBusiness === b ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{b}</button>
                   ))}
                 </div>
 
@@ -840,8 +948,8 @@ export default function AiSolutionPicker() {
                   </div>
                 )}
 
-                <div className="mt-6 flex justify-end">
-                  <button disabled={selectedBusiness === ''} onClick={()=>setStep(2)} className={`px-4 py-2 rounded-md ${selectedBusiness === '' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}>Дальше</button>
+                <div className="mt-4 sm:mt-6 flex justify-end">
+                  <button disabled={selectedBusiness === ''} onClick={()=>setStep(2)} className={`px-4 py-2 rounded-md text-sm sm:text-base ${selectedBusiness === '' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}>Дальше</button>
                 </div>
               </div>
             )}
@@ -854,9 +962,9 @@ export default function AiSolutionPicker() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {GOALS.map(g=> (
-                    <button key={g} onClick={()=>toggleGoals(selectedGoals,setSelectedGoals,g)} className={`px-3 py-1 rounded-full border font-light transition-colors duration-200 ${selectedGoals.includes(g) ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{g}</button>
+                    <button key={g} onClick={()=>toggleGoals(selectedGoals,setSelectedGoals,g)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-light transition-colors duration-200 text-sm ${selectedGoals.includes(g) ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{g}</button>
                   ))}
-                  <button onClick={()=>toggleGoals(selectedGoals,setSelectedGoals,'Другое')} className={`px-3 py-1 rounded-full border font-light transition-colors duration-200 ${selectedGoals.includes('Другое') ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>Другое</button>
+                  <button onClick={()=>toggleGoals(selectedGoals,setSelectedGoals,'Другое')} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-light transition-colors duration-200 text-sm ${selectedGoals.includes('Другое') ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>Другое</button>
                 </div>
 
                 {showCustomGoal && (
@@ -872,9 +980,9 @@ export default function AiSolutionPicker() {
                   </div>
                 )}
 
-                <div className="mt-6 flex justify-between">
-                  <button onClick={()=>setStep(1)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200">Назад</button>
-                  <button disabled={selectedGoals.length===0} onClick={()=>setStep(3)} className={`px-4 py-2 rounded-md ${selectedGoals.length===0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}>Дальше</button>
+                <div className="mt-4 sm:mt-6 flex justify-between">
+                  <button onClick={()=>setStep(1)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base">Назад</button>
+                  <button disabled={selectedGoals.length===0} onClick={()=>setStep(3)} className={`px-4 py-2 rounded-md text-sm sm:text-base ${selectedGoals.length===0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}>Дальше</button>
                 </div>
               </div>
             )}
@@ -884,11 +992,11 @@ export default function AiSolutionPicker() {
                 <h2 className="font-medium mb-6 text-black">Шаг 3 — Бюджет и сроки</h2>
                 
                 {/* Budget Range Slider */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                   <label className="text-sm text-gray-600 block mb-3">Бюджет (KGS)</label>
                   <div className="space-y-4">
                     {/* Range Slider */}
-                    <div className="relative h-6">
+                    <div className="relative h-8 sm:h-6">
                       {/* Track */}
                       <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-lg transform -translate-y-1/2"></div>
                       {/* Active Track */}
@@ -932,7 +1040,7 @@ export default function AiSolutionPicker() {
                     </div>
                     
                     {/* Input Fields */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <div className="flex-1">
                         <label className="block text-xs text-gray-500 mb-1">От</label>
                         <input
@@ -949,7 +1057,7 @@ export default function AiSolutionPicker() {
                             setInputFocus({...inputFocus, budget_min: false});
                             validateBudgetInput('min', e.target.value);
                           }}
-                          className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
+                          className="py-2 px-2 sm:px-3 block w-full border border-gray-200 rounded-lg text-xs sm:text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
                       </div>
                       <div className="flex-1">
@@ -968,7 +1076,7 @@ export default function AiSolutionPicker() {
                             setInputFocus({...inputFocus, budget_max: false});
                             validateBudgetInput('max', e.target.value);
                           }}
-                          className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
+                          className="py-2 px-2 sm:px-3 block w-full border border-gray-200 rounded-lg text-xs sm:text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
                       </div>
                     </div>
@@ -976,11 +1084,11 @@ export default function AiSolutionPicker() {
                 </div>
 
                 {/* Timeline Range Slider */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                   <label className="text-sm text-gray-600 block mb-3">Сроки выполнения (недели)</label>
                   <div className="space-y-4">
                     {/* Range Slider */}
-                    <div className="relative h-6">
+                    <div className="relative h-8 sm:h-6">
                       {/* Track */}
                       <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-lg transform -translate-y-1/2"></div>
                       {/* Active Track */}
@@ -1024,7 +1132,7 @@ export default function AiSolutionPicker() {
                     </div>
                     
                     {/* Input Fields */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <div className="flex-1">
                         <label className="block text-xs text-gray-500 mb-1">От</label>
                         <input
@@ -1041,7 +1149,7 @@ export default function AiSolutionPicker() {
                             setInputFocus({...inputFocus, timeline_min: false});
                             validateTimelineInput('min', e.target.value);
                           }}
-                          className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
+                          className="py-2 px-2 sm:px-3 block w-full border border-gray-200 rounded-lg text-xs sm:text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
                       </div>
                       <div className="flex-1">
@@ -1060,16 +1168,16 @@ export default function AiSolutionPicker() {
                             setInputFocus({...inputFocus, timeline_max: false});
                             validateTimelineInput('max', e.target.value);
                           }}
-                          className="py-2 px-3 block w-full border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
+                          className="py-2 px-2 sm:px-3 block w-full border border-gray-200 rounded-lg text-xs sm:text-sm focus:border-blue-500 focus:ring-blue-500 text-center text-black"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-between">
-                  <button onClick={()=>setStep(2)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200">Назад</button>
-                  <button onClick={()=>setStep(4)} className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition-colors duration-200">Дальше</button>
+                <div className="mt-4 sm:mt-6 flex justify-between">
+                  <button onClick={()=>setStep(2)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base">Назад</button>
+                  <button onClick={()=>setStep(4)} className="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition-colors duration-200 text-sm sm:text-base">Дальше</button>
                 </div>
               </div>
             )}
@@ -1079,35 +1187,35 @@ export default function AiSolutionPicker() {
                 <h2 className="font-medium mb-2 text-black">Шаг 4 — Предпочтительные технологии</h2>
                 <div className="flex flex-wrap gap-2">
                   {TECHS.map(t=> (
-                    <button key={t} onClick={()=>toggleTechs(selectedTechs,setSelectedTechs,t)} className={`px-3 py-1 rounded-full border font-light transition-colors duration-200 ${selectedTechs.includes(t) ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{t}</button>
+                    <button key={t} onClick={()=>toggleTechs(selectedTechs,setSelectedTechs,t)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border font-light transition-colors duration-200 text-sm ${selectedTechs.includes(t) ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400 hover:text-gray-600'}`}>{t}</button>
                   ))}
                 </div>
 
                 <div className="mt-4">
                   <label className="text-sm text-gray-600">Уточнение (желательно более подробно)</label>
-                  <textarea value={context} onChange={e=>setContext(e.target.value)} placeholder="Опишите бизнес, инструменты, боли, ограничения" className="w-full mt-2 p-3 rounded-md border border-gray-300 resize-y h-24 text-black" />
+                  <textarea value={context} onChange={e=>setContext(e.target.value)} placeholder="Опишите бизнес, инструменты, боли, ограничения" className="w-full mt-2 p-2 sm:p-3 rounded-md border border-gray-300 resize-y h-20 sm:h-24 text-black text-sm" />
                 </div>
 
-                <div className="mt-6 flex justify-between">
-                  <button onClick={()=>setStep(3)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200">Назад</button>
-                  <div className="flex gap-2">
+                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
+                  <button onClick={()=>setStep(3)} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base order-2 sm:order-1">Назад</button>
+                  <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
                     <button 
                       disabled={context.trim().length === 0 || selectedTechs.length === 0 || isGenerating} 
                       onClick={()=>{ setStep(5); generateProposal() }} 
-                      className={`px-4 py-2 rounded-md ${context.trim().length === 0 || selectedTechs.length === 0 || isGenerating ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}
+                      className={`px-4 py-2 rounded-md text-sm sm:text-base ${context.trim().length === 0 || selectedTechs.length === 0 || isGenerating ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'} transition-colors duration-200`}
                     >
-                      {isGenerating ? 'Генерация с ИИ...' : 'Сгенерировать предложение'}
+                      {isGenerating ? 'Генерация с ИИ...' : <><span className="hidden sm:inline">Сгенерировать предложение</span><span className="sm:hidden">Сгенерировать</span></>}
                     </button>
-                    <button onClick={resetWizard} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200">Сбросить</button>
+                    <button onClick={resetWizard} className="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-50 transition-colors duration-200 text-sm sm:text-base">Сбросить</button>
                   </div>
                 </div>
               </div>
             )}
 
             {step === 5 && isGenerating && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-                <p className="mt-4 text-lg text-gray-600">Генерируем персональное предложение с помощью ИИ...</p>
+              <div className="flex flex-col items-center justify-center py-12 sm:py-20">
+                <div className="animate-spin rounded-full h-10 sm:h-12 w-10 sm:w-12 border-b-2 border-black"></div>
+                <p className="mt-4 text-base sm:text-lg text-gray-600 text-center px-4">Генерируем персональное предложение с помощью ИИ...</p>
                 <div className="mt-2">
                   <TypewriterAnimation />
                 </div>
@@ -1118,16 +1226,16 @@ export default function AiSolutionPicker() {
               <div>
                 <div className="mt-4">
                   {/* Header */}
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-black mb-2">{proposal.title || 'Персональное предложение'}</h2>
-                    <p className="text-gray-600">{proposal.description || 'Детальное описание вашего проекта'}</p>
+                  <div className="mb-4 sm:mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-black mb-2">{proposal.title || 'Персональное предложение'}</h2>
+                    <p className="text-gray-600 text-sm sm:text-base">{proposal.description || 'Детальное описание вашего проекта'}</p>
                   </div>
 
                   {/* Price and Timeline - Key Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                      <h3 className="text-sm font-medium text-gray-600 mb-1">Стоимость проекта (примерная)</h3>
-                      <div className="text-3xl font-bold text-black">{getTotalPriceAndTime().price?.toLocaleString() || 'Уточняется'} KGS</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-xl border border-blue-200">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Стоимость проекта (примерная)</h3>
+                      <div className="text-2xl sm:text-3xl font-bold text-black">{getTotalPriceAndTime().price?.toLocaleString() || 'Уточняется'} KGS</div>
                       <p className="text-sm text-gray-500 mt-2">
                         {selectedRecommendations.length > 0 
                           ? `Базовая: ${proposal.price?.toLocaleString()} KGS + рекомендации: ${(getTotalPriceAndTime().price - proposal.price).toLocaleString()} KGS`
@@ -1138,9 +1246,9 @@ export default function AiSolutionPicker() {
                         <p className="text-xs text-blue-700 mt-2 italic">{proposal.budget_justification}</p>
                       )}
                     </div>
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
-                      <h3 className="text-sm font-medium text-gray-600 mb-1">Срок реализации</h3>
-                      <div className="text-3xl font-bold text-black">{getTotalPriceAndTime().weeks || 'Уточняется'} недель</div>
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 sm:p-6 rounded-xl border border-green-200">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Срок реализации</h3>
+                      <div className="text-2xl sm:text-3xl font-bold text-black">{getTotalPriceAndTime().weeks || 'Уточняется'} недель</div>
                       <p className="text-sm text-gray-500 mt-2">
                         {selectedRecommendations.length > 0 
                           ? `Базовые: ${proposal.timeline_weeks} нед. + доп.: ${getTotalPriceAndTime().weeks - proposal.timeline_weeks} нед.`
@@ -1391,22 +1499,22 @@ export default function AiSolutionPicker() {
         </div>
 
         {/* Sidebar */}
-        <aside className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <aside className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200">
           <div className="sticky top-6">
-            <h3 className="font-medium text-black">Резюме выбора</h3>
-            <p className="text-sm text-gray-400 font-light">Просматривайте ориентировочную цену и сроки в реальном времени.</p>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="text-sm text-gray-400 font-light">Сфера</div>
-              <div className="font-medium text-black">{selectedBusiness ? (selectedBusiness === 'Другое' && customBusiness ? customBusiness : selectedBusiness) : '—'}</div>
-              <div className="mt-2 text-sm text-gray-400 font-light">Цели</div>
-              <div className="font-medium text-black">{selectedGoals.length ? (selectedGoals.includes('Другое') && customGoal ? selectedGoals.filter(g => g !== 'Другое').concat(customGoal).join(', ') : selectedGoals.join(', ')) : '—'}</div>
-              <div className="mt-2 text-sm text-gray-400 font-light">Технологии</div>
-              <div className="font-medium text-black">{selectedTechs.length ? selectedTechs.join(', ') : '—'}</div>
+            <h3 className="font-medium text-black text-sm sm:text-base">Резюме выбора</h3>
+            <p className="text-xs sm:text-sm text-gray-400 font-light">Просматривайте ориентировочную цену и сроки в реальном времени.</p>
+            <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="text-xs sm:text-sm text-gray-400 font-light">Сфера</div>
+              <div className="font-medium text-black text-sm sm:text-base">{selectedBusiness ? (selectedBusiness === 'Другое' && customBusiness ? customBusiness : selectedBusiness) : '—'}</div>
+              <div className="mt-2 text-xs sm:text-sm text-gray-400 font-light">Цели</div>
+              <div className="font-medium text-black text-sm sm:text-base">{selectedGoals.length ? (selectedGoals.includes('Другое') && customGoal ? selectedGoals.filter(g => g !== 'Другое').concat(customGoal).join(', ') : selectedGoals.join(', ')) : '—'}</div>
+              <div className="mt-2 text-xs sm:text-sm text-gray-400 font-light">Технологии</div>
+              <div className="font-medium text-black text-sm sm:text-base">{selectedTechs.length ? selectedTechs.join(', ') : '—'}</div>
               <div className="mt-4 border-t pt-4">
-                <div className="mt-2 text-sm text-gray-400 font-light">Выбранный бюджет</div>
-                <div className="font-medium text-black">{budgetRange.min.toLocaleString()} - {budgetRange.max.toLocaleString()} KGS</div>
-                <div className="mt-2 text-sm text-gray-400 font-light">Выбранные сроки</div>
-                <div className="font-medium text-black">{timelineRange.min} - {timelineRange.max} нед.</div>
+                <div className="mt-2 text-xs sm:text-sm text-gray-400 font-light">Выбранный бюджет</div>
+                <div className="font-medium text-black text-sm sm:text-base">{budgetRange.min.toLocaleString()} - {budgetRange.max.toLocaleString()} KGS</div>
+                <div className="mt-2 text-xs sm:text-sm text-gray-400 font-light">Выбранные сроки</div>
+                <div className="font-medium text-black text-sm sm:text-base">{timelineRange.min} - {timelineRange.max} нед.</div>
               </div>
             </div>
 
@@ -1416,37 +1524,53 @@ export default function AiSolutionPicker() {
                                 <div className="relative group">
                     <button
                       onClick={() => { setShowRequestModal(true) }}
-                      className="relative inline-block p-px font-semibold leading-6 text-white bg-gray-800 shadow-2xl cursor-pointer rounded-xl shadow-zinc-900 transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
+                      disabled={isSubmitting}
+                      className={`relative inline-block p-px font-semibold leading-6 text-white shadow-2xl cursor-pointer rounded-xl shadow-zinc-900 transition-all duration-300 ease-in-out ${
+                        isSubmitting 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-gray-800 hover:scale-105 active:scale-95'
+                      }`}
                     >
                       <span
-                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400 via-blue-500 to-purple-500 p-[2px] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                        className={`absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400 via-blue-500 to-purple-500 p-[2px] transition-opacity duration-500 ${
+                          isSubmitting ? 'opacity-50' : 'opacity-0 group-hover:opacity-100'
+                        }`}
                       ></span>
                 
-                      <span className="relative z-10 block px-6 py-3 rounded-xl bg-gray-950">
+                      <span className={`relative z-10 block px-6 py-3 rounded-xl ${isSubmitting ? 'bg-gray-700' : 'bg-gray-950'}`}>
                         <div className="relative z-10 flex items-center space-x-2">
-                          <span className="transition-all duration-500 group-hover:translate-x-1">
-                            Отправить и получить -10%
-                          </span>
-                          <svg
-                            className="w-6 h-6 transition-transform duration-500 group-hover:translate-x-1"
-                            data-slot="icon"
-                            aria-hidden="true"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              clipRule="evenodd"
-                              d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
-                              fillRule="evenodd"
-                            ></path>
-                          </svg>
+                          {isSubmitting ? (
+                            <>
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <span>Создаем PDF...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="transition-all duration-500 group-hover:translate-x-1">
+                                Отправить и получить -10%
+                              </span>
+                              <svg
+                                className="w-6 h-6 transition-transform duration-500 group-hover:translate-x-1"
+                                data-slot="icon"
+                                aria-hidden="true"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  clipRule="evenodd"
+                                  d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                                  fillRule="evenodd"
+                                ></path>
+                              </svg>
+                            </>
+                          )}
                         </div>
                       </span>
                     </button>
                   </div>
                   <div className="mt-2 text-xs text-gray-400 font-light text-center">↑ Отправьте заявку и мы напишем вам в течение часа.</div>
-                <a href="https://t.me/" target="_blank" rel="noreferrer" className="text-sm underline text-gray-500 text-center pt-2 hover:text-gray-700 transition-colors duration-200">Обсудить в Telegram</a>
+                <a href="https://t.me/codevai_team" target="_blank" rel="noreferrer" className="text-sm underline text-gray-500 text-center pt-2 hover:text-gray-700 transition-colors duration-200">Обсудить в Telegram</a>
               </div>
             )}
             
@@ -1457,10 +1581,10 @@ export default function AiSolutionPicker() {
 
       {/* Modal */}
       {showRequestModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md border border-gray-300">
-            <h3 className="font-medium mb-2 text-black">Получить предложение со скидкой -10%</h3>
-            <p className="text-sm text-gray-600 mb-4">Мы отправим детальное предложение в PDF и напишем вам в течение часа</p>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-xl w-full max-w-md border border-gray-300 max-h-[90vh] overflow-y-auto">
+            <h3 className="font-medium mb-2 text-black text-base sm:text-lg">Получить предложение со скидкой -10%</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mb-4">Мы отправим детальное предложение в PDF и напишем вам в течение часа</p>
             
             <div className="mb-3">
               <label className="block text-sm font-medium text-gray-700 mb-1">ФИО *</label>
@@ -1468,7 +1592,7 @@ export default function AiSolutionPicker() {
                 value={contact.fullName} 
                 onChange={e=>setContact({...contact,fullName:e.target.value})} 
                 placeholder="Введите ваше полное имя" 
-                className="w-full p-3 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className="w-full p-2 sm:p-3 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base" 
                 required
               />
             </div>
@@ -1477,11 +1601,44 @@ export default function AiSolutionPicker() {
               <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp номер *</label>
               <input 
                 value={contact.whatsapp} 
-                onChange={e=>setContact({...contact,whatsapp:e.target.value})} 
+                onChange={e=>handleWhatsAppChange(e.target.value)} 
                 placeholder="+996 XXX XXX XXX" 
-                className="w-full p-3 border border-gray-300 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className={`w-full p-2 sm:p-3 border rounded-md text-black focus:ring-2 text-sm sm:text-base ${
+                  contact.whatsapp && !phoneValidation.isValid 
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                    : contact.whatsapp && phoneValidation.isValid 
+                    ? 'border-green-300 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                }`}
                 required
               />
+              {contact.whatsapp && (
+                <div className={`mt-1 text-xs ${phoneValidation.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                  {phoneValidation.isValid && phoneValidation.formattedNumber && (
+                    <span>✓ Форматированный номер: {phoneValidation.formattedNumber}</span>
+                  )}
+                  {!phoneValidation.isValid && (
+                    <span>⚠ {phoneValidation.message}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={downloadPdf}
+                  onChange={(e) => setDownloadPdf(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
+                />
+                <span className="text-sm text-gray-700">
+                  Также скачать PDF на устройство
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-7">
+                PDF автоматически скачается после успешной отправки
+              </p>
             </div>
             
             <div className="flex gap-2 justify-end">
@@ -1493,10 +1650,26 @@ export default function AiSolutionPicker() {
               </button>
               <button 
                 onClick={submitRequest} 
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-                disabled={!contact.fullName || !contact.whatsapp}
+                disabled={!contact.fullName || !contact.whatsapp || !phoneValidation.isValid || isSubmitting}
+                className={`px-4 py-2 rounded-md text-white transition-all duration-200 flex items-center gap-2 ${
+                  !contact.fullName || !contact.whatsapp || !phoneValidation.isValid || isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-black hover:bg-indigo-700 hover:shadow-lg'
+                }`}
               >
-                Отправить заявку
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Отправляем...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    <span>Отправить заявку</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1505,7 +1678,19 @@ export default function AiSolutionPicker() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed right-6 bottom-6 bg-white p-4 rounded-lg shadow-lg border border-gray-300 text-black">{toast}</div>
+        <div className="fixed right-3 sm:right-6 bottom-3 sm:bottom-6 bg-white p-3 sm:p-4 rounded-lg shadow-lg border border-gray-300 text-black max-w-xs sm:max-w-sm left-3 sm:left-auto">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 text-xs sm:text-sm">{toast}</div>
+            <button
+              onClick={() => setToast(null)}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200 flex-shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

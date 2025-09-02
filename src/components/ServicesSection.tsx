@@ -211,12 +211,7 @@ export default function ServicesSection() {
       ref={targetRef}
       className="py-12 sm:py-8 lg:py-12 bg-background relative overflow-hidden"
     >
-      {/* Декоративный фон */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-40 left-1/5 w-2 h-32 bg-gradient-to-b from-primary/20 to-transparent -rotate-12"></div>
-        <div className="absolute bottom-32 right-1/4 w-1 h-40 bg-gradient-to-b from-blue-400/20 to-transparent rotate-45"></div>
-        <div className="absolute top-1/4 right-1/5 w-1 h-24 bg-gradient-to-b from-purple-400/20 to-transparent -rotate-45"></div>
-      </div>
+      
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Заголовок секции */}
@@ -421,9 +416,14 @@ export default function ServicesSection() {
                 </button>
               </Link>
               
-              <button className="w-full sm:w-auto border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 hover:bg-primary/5 hover:scale-105 active:scale-95">
+              <a
+              href="https://t.me/codevai_team"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 hover:bg-primary/5 hover:scale-105 active:scale-95 flex items-center justify-center"
+              >
                 Связаться напрямую
-              </button>
+                </a>
             </div>
           </div>
         </div>

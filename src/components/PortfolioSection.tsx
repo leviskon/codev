@@ -4,29 +4,25 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import useIntersectionObserver from '@/hooks/useIntersectionObserver';
 
-const portfolioProjects = [
-  {
-    id: 1,
-    name: 'Gold Elegance',
-    description: 'Компания по декорированию мероприятий. Создаем незабываемую атмосферу с премиальными материалами',
-    image: '/gold_elegance.png',
-    link: 'https://price-list-goldelegance.vercel.app/'
-  },
-  {
-    id: 2,
-    name: 'Apakai',
-    description: 'Магазин уходовой косметики и мыломоющих средств с быстрой доставкой и качественными товарами',
-    image: '/apakai.png',
-    link: 'https://apakai.vercel.app/'
-  },
-  {
-    id: 3,
-    name: 'Kelkel Store',
-    description: 'Магазин современной бытовой техники с широким ассортиментом и доставкой по Кыргызстану',
-    image: '/kelkel_store.png',
-    link: 'https://kelkel.store/'
-  }
-];
+// Интерфейс для проекта из БД
+interface Project {
+  id: number;
+  title: string;
+  description?: string;
+  image_url?: string;
+  project_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Интерфейс для отображения проекта (адаптированный)
+interface ProjectDisplay {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  link: string;
+}
 
 export default function PortfolioSection() {
   const { targetRef, isVisible } = useIntersectionObserver({
@@ -34,6 +30,74 @@ export default function PortfolioSection() {
     rootMargin: '0px 0px -50px 0px'
   });
   const [isMobile, setIsMobile] = useState(false);
+  const [projects, setProjects] = useState<ProjectDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Функция для преобразования проектов из БД в формат для отображения
+  const transformProject = (project: Project): ProjectDisplay => ({
+    id: project.id,
+    name: project.title,
+    description: project.description || 'Описание проекта',
+    image: project.image_url || '/placeholder-project.svg',
+    link: project.project_url || '#'
+  });
+
+  // Загрузка проектов из API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Ошибка загрузки проектов');
+        }
+        
+        const transformedProjects = data.projects.map(transformProject);
+        setProjects(transformedProjects);
+        
+        console.log(`Загружено ${transformedProjects.length} проектов из БД`);
+        
+      } catch (err) {
+        console.error('Ошибка загрузки проектов:', err);
+        setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+        
+        // В случае ошибки показываем fallback проекты
+        const fallbackProjects: ProjectDisplay[] = [
+          {
+            id: 1,
+            name: 'Gold Elegance',
+            description: 'Компания по декорированию мероприятий. Создаем незабываемую атмосферу с премиальными материалами',
+            image: '/gold_elegance.png',
+            link: 'https://price-list-goldelegance.vercel.app/'
+          },
+          {
+            id: 2,
+            name: 'Apakai',
+            description: 'Магазин уходовой косметики и мыломоющих средств с быстрой доставкой и качественными товарами',
+            image: '/apakai.png',
+            link: 'https://apakai.vercel.app/'
+          },
+          {
+            id: 3,
+            name: 'Kelkel Store',
+            description: 'Магазин современной бытовой техники с широким ассортиментом и доставкой по Кыргызстану',
+            image: '/kelkel_store.png',
+            link: 'https://kelkel.store/'
+          }
+        ];
+        setProjects(fallbackProjects);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -75,12 +139,33 @@ export default function PortfolioSection() {
           </p>
         </div>
 
+        {/* Индикатор загрузки */}
+        {loading && (
+          <div className={`text-center py-8 ${
+            isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+          }`}>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-foreground/70 mt-4">Загружаем проекты...</p>
+          </div>
+        )}
+
+        {/* Сообщение об ошибке */}
+        {error && !loading && (
+          <div className={`text-center py-8 ${
+            isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+          }`}>
+            <p className="text-red-500 mb-2">⚠️ {error}</p>
+            <p className="text-foreground/70 text-sm">Показываем примеры проектов</p>
+          </div>
+        )}
+
         {/* Карусель проектов */}
-        <div className={`w-full overflow-x-auto overflow-y-visible scrollbar-hide py-4 ${
-          isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
-        }`}>
-          <div className="flex gap-6 sm:gap-8 w-max px-4 sm:px-0">
-            {portfolioProjects.map((project, index) => (
+        {!loading && (
+          <div className={`w-full overflow-x-auto overflow-y-visible scrollbar-hide py-4 ${
+            isVisible ? 'animate-section-reveal-up delay-400' : 'opacity-0'
+          }`}>
+            <div className="flex gap-6 sm:gap-8 w-max px-4 sm:px-0">
+              {projects.map((project, index) => (
               <div
                 key={project.id}
                 className={`
@@ -93,7 +178,7 @@ export default function PortfolioSection() {
                   ${isVisible ? 'animate-portfolio-slide' : 'opacity-0'}
                 `}
                 style={{ animationDelay: `${0.6 + index * 0.15}s` }}
-                onClick={() => window.open(project.link, '_blank')}
+                onClick={() => project.link !== '#' && window.open(project.link, '_blank')}
               >
                 {/* Изображение */}
                 <div className="relative h-48 sm:h-52 overflow-hidden rounded-t-xl">
@@ -103,6 +188,13 @@ export default function PortfolioSection() {
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 640px) 300px, 340px"
+                    onError={(e) => {
+                      // Fallback изображение при ошибке загрузки
+                      const target = e.currentTarget;
+                      if (target.src !== window.location.origin + '/placeholder-project.svg') {
+                        target.src = '/placeholder-project.svg';
+                      }
+                    }}
                   />
                   
                   {/* Subtle overlay */}
@@ -134,10 +226,11 @@ export default function PortfolioSection() {
                     </svg>
                   </div>
                 </div>
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* CTA внизу секции */}
         <div
@@ -149,19 +242,25 @@ export default function PortfolioSection() {
             Готовы создать свой проект? Расскажите о задачах
           </p>
           
-          <button className={`
-                w-full sm:w-auto
-                bg-primary hover:bg-primary-dark text-background 
-                font-semibold text-base sm:text-lg lg:text-xl 
-                px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                rounded-full transition-all duration-300 
-                shadow-lg hover:shadow-xl 
-                ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-                relative overflow-hidden group
-              `}>
-                <span className="relative z-10">Начать проект</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
-              </button>
+          <a
+          href="https://t.me/codevai_team"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`
+            w-full sm:w-auto
+            bg-primary hover:bg-primary-dark text-background 
+            font-semibold text-base sm:text-lg lg:text-xl 
+            px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
+            rounded-full transition-all duration-300 
+            shadow-lg hover:shadow-xl 
+            ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
+            relative overflow-hidden group
+            flex items-center justify-center
+            `}
+            >
+              <span className="relative z-10">Начать проект</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-dark/0 via-white/10 to-primary-dark/0 transform -skew-x-12 translate-x-full group-hover:translate-x-[-100%] transition-transform duration-700"></div>
+              </a>
         </div>
       </div>
     </section>

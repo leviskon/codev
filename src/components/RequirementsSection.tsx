@@ -271,19 +271,14 @@ export default function RequirementsSection() {
                 </button>
               </Link>
               
-              <Link href="/calculator" className="w-full sm:w-auto">
-                <button className={`
-                  w-full
-                  border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary
-                  font-semibold text-base sm:text-lg lg:text-xl 
-                  px-8 sm:px-10 lg:px-12 py-3.5 sm:py-4 lg:py-5 
-                  rounded-full transition-all duration-300 
-                  hover:bg-primary/5 
-                  ${isMobile ? 'active:scale-95' : 'hover:scale-105'}
-                `}>
-                  Узнать цену
-                </button>
-              </Link>
+              <a
+              href="https://t.me/codevai_team"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto border-2 border-foreground/20 hover:border-primary text-foreground hover:text-primary font-semibold text-sm sm:text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 sm:py-3.5 lg:py-4 rounded-full transition-all duration-300 hover:bg-primary/5 hover:scale-105 active:scale-95 flex items-center justify-center"
+              >
+                Узнать цену
+                </a>
             </div>
           </div>
         </div>
