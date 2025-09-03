@@ -32,6 +32,7 @@ async function generatePDF(data: ProposalData): Promise<Buffer> {
     // Запускаем Puppeteer браузер с оптимизированными настройками
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox', 
