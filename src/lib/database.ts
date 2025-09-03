@@ -3,7 +3,9 @@ import { Pool } from 'pg';
 // Создаем пул соединений для PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Для Neon всегда используем SSL
+  ssl: process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL?.includes('localhost') && !process.env.DATABASE_URL?.includes('db:') 
+    ? { rejectUnauthorized: false } 
+    : false, // SSL только для внешних БД, не для Docker
 });
 
 /**

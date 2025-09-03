@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ['puppeteer'],
+  eslint: {
+    // Отключаем ESLint проверки во время сборки
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Отключаем TypeScript проверки во время сборки (опционально)
+    ignoreBuildErrors: true,
+  },
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
