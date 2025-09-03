@@ -737,18 +737,18 @@ export function generatePDFTemplate(data: ProposalData): string {
             </div>
             <h1>Предложение по разработке IT-решения</h1>
             <div class="subtitle">Дата создания: ${new Date().toLocaleDateString('ru-RU')}</div>
-            <div class="discount-badge">🎉 Специальная скидка -10%</div>
+            <div class="discount-badge">Специальная скидка -10%</div>
         </div>
         
         <!-- Contact and Project Info -->
         <div class="info-grid">
             <div class="info-card">
-                <h3>👤 Контактные данные</h3>
+                <h3>Контактные данные</h3>
                 <p><strong>ФИО:</strong> ${data.contact.fullName}</p>
                 <p><strong>WhatsApp:</strong> ${data.contact.whatsapp}</p>
             </div>
             <div class="info-card">
-                <h3>💼 Данные проекта</h3>
+                <h3>Данные проекта</h3>
                 <p><strong>Сфера:</strong> ${data.projectData.business}</p>
                 <p><strong>Цели:</strong> ${data.projectData.goals.join(', ')}</p>
                 <p><strong>Технологии:</strong> ${data.projectData.technologies.join(', ')}</p>
@@ -756,7 +756,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         </div>
         
         <!-- Pricing Section -->
-        <h2 class="section-title">💰 Стоимость проекта</h2>
+        <h2 class="section-title">Стоимость проекта</h2>
         <div class="price-grid">
             <div class="price-card blue">
                 <h3>Стоимость проекта (примерная)</h3>
@@ -785,19 +785,19 @@ export function generatePDFTemplate(data: ProposalData): string {
         
         ${data.proposal.budget_justification ? `
         <div class="budget-justification">
-            <strong>💡 Обоснование стоимости:</strong> ${data.proposal.budget_justification}
+            <strong>Обоснование стоимости:</strong> ${data.proposal.budget_justification}
         </div>
         ` : ''}
         
         <!-- Project Description -->
-        <h2 class="section-title">📋 ${data.proposal.title}</h2>
+        <h2 class="section-title">${data.proposal.title}</h2>
         <div class="info-card">
             <p>${data.proposal.description}</p>
         </div>
         
         <!-- Functionality -->
         ${data.proposal.functionality && data.proposal.functionality.length > 0 ? `
-        <h2 class="section-title">⚙️ Функциональность</h2>
+        <h2 class="section-title">Функциональность</h2>
         <div class="functionality-list">
             ${data.proposal.functionality.map((func, index) => `
                 <div class="functionality-item">
@@ -811,14 +811,14 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- All Recommendations -->
         ${data.proposal.additional_recommendations && data.proposal.additional_recommendations.length > 0 ? `
         <div class="recommendations-section">
-            <h2 class="section-title">⭐ Рекомендации для расширения проекта</h2>
+            <h2 class="section-title">Рекомендации для расширения проекта</h2>
             <div class="advice-card">
                 <p><strong>● Совет:</strong> Следующие функции не включены в основной бюджет, но могут значительно улучшить ваш продукт. Рассмотрите возможность увеличения бюджета и сроков для их реализации.</p>
             </div>
             
             ${data.selectedRecommendations && data.selectedRecommendations.length > 0 ? `
             <div style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 600; color: #059669; margin-bottom: 16px;">✅ Включенные рекомендации</h3>
+                <h3 style="font-size: 18px; font-weight: 600; color: #059669; margin-bottom: 16px;">Включенные рекомендации</h3>
                 <div class="recommendations-grid">
                     ${data.selectedRecommendations.map(recIndex => {
                         const rec = data.proposal.additional_recommendations?.[recIndex];
@@ -826,7 +826,7 @@ export function generatePDFTemplate(data: ProposalData): string {
                             <div class="recommendation-item">
                                 <div class="recommendation-header">
                                     <div>
-                                        <div class="recommendation-title">🚀 ${rec.title}</div>
+                                        <div class="recommendation-title">${rec.title}</div>
                                         <span class="priority-badge priority-${rec.priority}">
                                             ${rec.priority === 'high' ? 'Высокий приоритет' :
                                               rec.priority === 'medium' ? 'Средний приоритет' : 'Низкий приоритет'}
@@ -857,7 +857,7 @@ export function generatePDFTemplate(data: ProposalData): string {
             ` : ''}
             
             <div>
-                <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 16px;">💡 Дополнительные возможности</h3>
+                <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 16px;">Дополнительные возможности</h3>
                 <div class="recommendations-grid">
                     ${data.proposal.additional_recommendations.map((rec, index) => {
                         const isSelected = data.selectedRecommendations && data.selectedRecommendations.includes(index);
@@ -867,7 +867,7 @@ export function generatePDFTemplate(data: ProposalData): string {
                             <div class="recommendation-item not-selected">
                                 <div class="recommendation-header">
                                     <div>
-                                        <div class="recommendation-title">💎 ${rec.title}</div>
+                                        <div class="recommendation-title">${rec.title}</div>
                                         <span class="priority-badge priority-${rec.priority}">
                                             ${rec.priority === 'high' ? 'Высокий приоритет' :
                                               rec.priority === 'medium' ? 'Средний приоритет' : 'Низкий приоритет'}
@@ -889,7 +889,7 @@ export function generatePDFTemplate(data: ProposalData): string {
                                 </div>
                                 <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 8px; margin-top: 12px;">
                                     <p style="font-size: 14px; color: #92400e; font-weight: 500; margin: 0;">
-                                        💰 Можно добавить в следующую фазу развития проекта
+                                        Можно добавить в следующую фазу развития проекта
                                     </p>
                                 </div>
                             </div>
@@ -903,7 +903,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- Development Phases -->
         ${data.proposal.phases && data.proposal.phases.length > 0 ? `
         <div class="phases-section">
-            <h2 class="section-title">📅 Этапы разработки</h2>
+            <h2 class="section-title">Этапы разработки</h2>
             <div class="phases-list">
                 ${data.proposal.phases.map(phase => `
                     <div class="phase-item">
@@ -931,7 +931,7 @@ export function generatePDFTemplate(data: ProposalData): string {
             <!-- Technical Stack -->
             ${data.proposal.technical_stack ? `
             <div class="tech-stack-section">
-                <div class="tech-stack-title">🛠️ Технический стек</div>
+                <div class="tech-stack-title">Технический стек</div>
                 <div class="tech-categories">
                     ${Object.entries(data.proposal.technical_stack).map(([key, value]) => `
                         <div class="tech-category">
@@ -949,14 +949,14 @@ export function generatePDFTemplate(data: ProposalData): string {
             <div class="arch-integration-section">
                 ${data.proposal.architecture ? `
                 <div class="arch-card">
-                    <div class="arch-title">🏗️ Архитектура решения</div>
+                    <div class="arch-title">Архитектура решения</div>
                     <div class="arch-description">${data.proposal.architecture}</div>
                 </div>
                 ` : ''}
                 
                 ${data.proposal.integrations && data.proposal.integrations.length > 0 ? `
                 <div class="arch-card">
-                    <div class="arch-title">🔗 Интеграции</div>
+                    <div class="arch-title">Интеграции</div>
                     <div class="tech-tags">
                         ${data.proposal.integrations.map(integration => `<span class="tech-tag">${integration}</span>`).join('')}
                     </div>
@@ -968,7 +968,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- Risks -->
         ${data.proposal.risks && data.proposal.risks.length > 0 ? `
         <div class="risks-section">
-            <h2 class="section-title">⚠️ Риски и их митигация</h2>
+            <h2 class="section-title">Риски и их митигация</h2>
             <div class="risks-list">
                 ${data.proposal.risks.map(risk => `
                     <div class="risk-item">
@@ -983,7 +983,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- ROI -->
         ${data.proposal.roi ? `
         <div class="roi-section">
-            <h2 class="section-title">📈 ROI и экономическая эффективность</h2>
+            <h2 class="section-title">ROI и экономическая эффективность</h2>
             <div class="roi-card">
                 <div class="roi-description">${data.proposal.roi}</div>
             </div>
@@ -993,7 +993,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- Support -->
         ${data.proposal.support ? `
         <div class="support-section">
-            <h2 class="section-title">🛡️ Техническая поддержка</h2>
+            <h2 class="section-title">Техническая поддержка</h2>
             <div class="support-card">
                 <div class="support-description">${data.proposal.support}</div>
             </div>
@@ -1003,7 +1003,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         <!-- Next Steps -->
         ${data.proposal.nextSteps && data.proposal.nextSteps.length > 0 ? `
         <div class="next-steps-section">
-            <h2 class="section-title">🚀 Следующие шаги</h2>
+            <h2 class="section-title">Следующие шаги</h2>
             <div class="next-steps-card">
                 <ol class="next-steps-list">
                     ${data.proposal.nextSteps.map(step => `<li>${step}</li>`).join('')}
@@ -1014,7 +1014,7 @@ export function generatePDFTemplate(data: ProposalData): string {
         
         <!-- Contact Info -->
         <div class="contact-info">
-            <h3>📞 Связаться с нами</h3>
+            <h3>Связаться с нами</h3>
             <p>Готовы обсудить детали проекта и ответить на все ваши вопросы!</p>
             <p><strong>Telegram:</strong> <a href="https://t.me/codevai_team" style="color: #60a5fa; text-decoration: underline;">@codevai_team</a></p>
             <p><strong>WhatsApp:</strong> <a href="https://wa.me/996700746333" style="color: #60a5fa; text-decoration: underline;">+996 700 746 333</a></p>

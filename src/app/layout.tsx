@@ -15,6 +15,41 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Codev - IT компания | Разработка и оцифровка бизнеса",
   description: "Codev - IT компания, которая занимается разработкой, оцифровкой бизнеса, созданием сайтов и веб-приложений. Получите расчёт стоимости проекта за минуту с нашим AI-помощником.",
+  keywords: "IT компания, разработка сайтов, веб-приложения, оцифровка бизнеса, Codev, программирование, дизайн",
+  authors: [{ name: "Codev Team" }],
+  creator: "Codev",
+  publisher: "Codev",
+  icons: {
+    icon: [
+      {
+        url: '/codev-logo-without-bg.png',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+      {
+        url: '/codev-logo-without-bg.svg',
+        type: 'image/svg+xml',
+      }
+    ],
+    apple: {
+      url: '/codev-logo-without-bg.png',
+      sizes: '180x180',
+      type: 'image/png',
+    },
+    shortcut: '/codev-logo-without-bg.png',
+  },
+  openGraph: {
+    title: "Codev - IT компания | Разработка и оцифровка бизнеса",
+    description: "Codev - IT компания, которая занимается разработкой, оцифровкой бизнеса, созданием сайтов и веб-приложений. Получите расчёт стоимости проекта за минуту с нашим AI-помощником.",
+    images: ['/codev-logo-without-bg.png'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Codev - IT компания | Разработка и оцифровка бизнеса",
+    description: "Codev - IT компания, которая занимается разработкой, оцифровкой бизнеса, созданием сайтов и веб-приложений.",
+    images: ['/codev-logo-without-bg.png'],
+  },
 };
 
 export default function RootLayout({
